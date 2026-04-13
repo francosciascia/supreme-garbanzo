@@ -1,5 +1,6 @@
 package com.example.demo.services;
 
+import com.example.demo.dto.ProductoDTO;
 import com.example.demo.models.Producto;
 import com.example.demo.repository.ProductoRepository;
 import jakarta.transaction.Transactional;
@@ -19,13 +20,31 @@ public class ProductoService {
 
     // Vista ---------------
     @Transactional
-    public List<Producto> listar(){
-        return productoRepository.findAll();
+    public List<ProductoDTO> listar(){
+        return productoRepository.findAll()
+                .stream()
+                .map(p -> new ProductoDTO(
+                        p.getId(),
+                        p.getNombre(),
+                        p.getDescripcion(),
+                        p.getStock(),
+                        p.getCosto(),
+                        p.getPrecioVenta()
+                ))
+                .toList();
     }
 
     @Transactional
-    public Optional<Producto> detalle (Long id){
-        return productoRepository.findById(id);
+    public Optional<ProductoDTO> detalle(Long id){
+        return productoRepository.findById(id)
+                .map(p -> new ProductoDTO(
+                        p.getId(),
+                        p.getNombre(),
+                        p.getDescripcion(),
+                        p.getStock(),
+                        p.getCosto(),
+                        p.getPrecioVenta()
+                ));
     }
 
     // Escritura
