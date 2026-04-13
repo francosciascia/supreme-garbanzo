@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record VentaDTO(
-        long id,
+        Long id,
         LocalDate fecha,
         BigDecimal total,
         List<ItemVentaDTO> items

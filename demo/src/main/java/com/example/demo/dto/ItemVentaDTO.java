@@ -3,9 +3,10 @@ package com.example.demo.dto;
 import java.math.BigDecimal;
 
 public record ItemVentaDTO(
-        long productoId,
+        Long id,
+        Long productoId,
         String nombreProducto,
-        int cantidad,
+        Integer cantidad,
         BigDecimal precioUnitario,
         BigDecimal subtotal
 ) {}

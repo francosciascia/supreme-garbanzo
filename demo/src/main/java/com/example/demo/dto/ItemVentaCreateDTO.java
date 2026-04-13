@@ -4,6 +4,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 public record ItemVentaCreateDTO(
-        @NotNull Long productoId,
-        @Min(1) int cantidad
+
+        @NotNull(message = "El producto es obligatorio")
+        Long productoId,
+
+        @NotNull
+        @Min(value = 1, message = "La cantidad debe ser mayor a 0")
+        Integer cantidad
 ) {}

@@ -53,9 +53,7 @@ public class ProductoService {
     public void eliminar(Long id){
         if (!productoRepository.existsById(id)){
             throw new IllegalArgumentException("Producto no existe: "+id);
-
         }
         productoRepository.deleteById(id);
     }
-
 }

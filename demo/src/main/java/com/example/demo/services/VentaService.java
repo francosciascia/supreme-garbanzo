@@ -96,8 +96,6 @@ public class VentaService {
 
         Producto p = iv.getProducto();
         p.setStock(p.getStock() + iv.getCantidad());
-
-
         venta.removeItem(iv);
 
         return ventaRepository.save(venta);

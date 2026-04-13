@@ -37,7 +37,6 @@ public class ProductoController {
     public ResponseEntity<Producto> crear(@RequestBody Producto producto){
         Producto nuevo = productoService.crear(producto);
         return ResponseEntity.ok(nuevo);
-
     }
 
     @PutMapping("/{id}")
