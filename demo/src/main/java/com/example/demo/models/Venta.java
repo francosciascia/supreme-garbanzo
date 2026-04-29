@@ -30,6 +30,7 @@ public class Venta {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @Builder.Default
     private List<ItemVenta> items = new ArrayList<>();
 
     @Column(nullable = false, precision = 14, scale = 2)

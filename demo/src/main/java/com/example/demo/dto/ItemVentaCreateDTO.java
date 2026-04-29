@@ -5,10 +5,10 @@ import jakarta.validation.constraints.NotNull;
 
 public record ItemVentaCreateDTO(
 
-        @NotNull(message = "El producto es obligatorio")
+        @NotNull(message = "El ID del producto es obligatorio")
         Long productoId,
 
-        @NotNull
+        @NotNull(message = "La cantidad es obligatoria")
         @Min(value = 1, message = "La cantidad debe ser mayor a 0")
         Integer cantidad
 ) {}

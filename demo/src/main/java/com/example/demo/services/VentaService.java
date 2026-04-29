@@ -1,5 +1,7 @@
 package com.example.demo.services;
 
+import com.example.demo.dto.ItemVentaCreateDTO;
+import com.example.demo.dto.VentaCreateDTO;
 import com.example.demo.models.ItemVenta;
 import com.example.demo.models.Producto;
 import com.example.demo.models.Venta;
@@ -35,53 +37,64 @@ public class VentaService {
         return ventaRepository.findById(id);
     }
 
-    // ===== Crear venta (sin DTOs) =====
+    // ===== Crear venta con DTO =====
     @Transactional
-    public Venta crear(Venta venta) {
-        for (ItemVenta item : venta.getItems()) {
+    public Venta crear(VentaCreateDTO ventaDTO) {
+        Venta venta = new Venta();
+        venta.setFecha(java.time.LocalDate.now());
+        venta.setTotal(java.math.BigDecimal.ZERO);
+        
+        for (ItemVentaCreateDTO itemDTO : ventaDTO.items()) {
             // 1) Validar y cargar el producto desde DB
-            Long productoId = Objects.requireNonNull(item.getProducto(), "Falta 'producto' en el ítem").getId();
+            Long productoId = itemDTO.productoId();
             Producto p = productoRepository.findById(productoId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
             // 2) Stock suficiente
-            if (p.getStock() == null || p.getStock() < item.getCantidad()) {
-                throw new IllegalStateException("Sin stock suficiente para " + p.getNombre());
+            if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
+                throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() + 
+                    ". Stock disponible: " + p.getStock());
             }
 
-            // 3) Descontar stock y “congelar” precio
-            p.setStock(p.getStock() - item.getCantidad());
+            // 3) Crear item, descontar stock y congelar precio
+            ItemVenta item = new ItemVenta();
+            item.setProducto(p);
+            item.setCantidad(itemDTO.cantidad());
             item.setPrecioUnitario(p.getPrecioVenta());
-
-
             item.setVenta(venta);
+            
+            p.setStock(p.getStock() - itemDTO.cantidad());
+            venta.addItems(item);
         }
-        // cascade = ALL en Venta → persiste también los items
+        
         return ventaRepository.save(venta);
     }
 
     @Transactional
-    public Venta agregarItem(Long ventaId, ItemVenta nuevoItem) {
+    public Venta agregarItem(Long ventaId, ItemVentaCreateDTO itemDTO) {
         Venta venta = ventaRepository.findById(ventaId)
                 .orElseThrow(() -> new IllegalArgumentException("Venta no existe: " + ventaId));
 
-        Long productoId = Objects.requireNonNull(nuevoItem.getProducto(), "Falta 'producto' en el ítem").getId();
+        Long productoId = itemDTO.productoId();
         Producto p = productoRepository.findById(productoId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
-        if (p.getStock() == null || p.getStock() < nuevoItem.getCantidad()) {
-            throw new IllegalStateException("Sin stock suficiente para " + p.getNombre());
+        if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
+            throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() + 
+                ". Stock disponible: " + p.getStock());
         }
 
-        p.setStock(p.getStock() - nuevoItem.getCantidad());
+        ItemVenta nuevoItem = new ItemVenta();
+        nuevoItem.setProducto(p);
+        nuevoItem.setCantidad(itemDTO.cantidad());
         nuevoItem.setPrecioUnitario(p.getPrecioVenta());
         nuevoItem.setVenta(venta);
 
-        venta.removeItem(nuevoItem);
+        p.setStock(p.getStock() - itemDTO.cantidad());
+        venta.addItems(nuevoItem);
 
         return ventaRepository.save(venta);
     }
-
 
     @Transactional
     public Venta quitarItem(Long ventaId, Long itemId) {
@@ -92,7 +105,6 @@ public class VentaService {
                 .filter(x -> Objects.equals(x.getId(), itemId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Item no existe: " + itemId));
-
 
         Producto p = iv.getProducto();
         p.setStock(p.getStock() + iv.getCantidad());
