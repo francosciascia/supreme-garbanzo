@@ -3,7 +3,7 @@
 Proyecto desarrollado en Java + Spring Boot, con el objetivo de aprender Spring Boot, mejorar la calidad de código y trabajar con bases de datos.
 Permite administrar productos, registrar ventas, controlar stock y calcular resultados básicos de la actividad comercial.
 
-Actualmente lo estamos testeando con Postman.
+**¡Ahora incluye interfaz web completa!** 🎉
 
 📌 Funcionalidades
 
@@ -27,6 +27,18 @@ Asociación de productos a ítems de venta.
 
 🗄️ Persistencia con Spring Data JPA y base de datos relacional.
 
+🌐 **Interfaz Web Completa**
+
+Dashboard con estadísticas en tiempo real.
+
+Gestión visual de productos (CRUD completo).
+
+Sistema de ventas con interfaz intuitiva.
+
+Notificaciones y feedback visual.
+
+Diseño responsive (mobile-first).
+
 🛠️ Tecnologías
 
 Java 17+
@@ -42,6 +54,8 @@ Lombok
 Maven
 
 Base de datos relacional (ej: MySQL, PostgreSQL o H2 para pruebas).
+
+**Frontend: HTML5, CSS3, JavaScript (Vanilla)**
 
 ▶️ Cómo correr el proyecto
 
@@ -59,6 +73,22 @@ mvn spring-boot:run
 La API quedará levantada en:
 
 http://localhost:8080
+
+**🌐 Interfaz Web**
+
+Accede a la interfaz web completa en:
+
+http://localhost:8080
+
+**📚 Documentación API**
+
+Documentación interactiva con Swagger:
+
+http://localhost:8080/swagger-ui.html
+
+Especificación OpenAPI:
+
+http://localhost:8080/v3/api-docs
 
 📂 Endpoints principales
 Productos
@@ -175,18 +205,20 @@ Response
 
 🚀 Próximos pasos
 
+✅ **Interfaz web completa implementada** (HTML/CSS/JS puro)
+
 Agregar seguridad (Spring Security, JWT).
 
-Implementar reportes de ventas.
-
-Crear interfaz front-end (React/Angular).
+Implementar reportes de ventas avanzados.
 
 Optimizar consultas con @EntityGraph.
 
-Continuar con pruebas en Postman.
+Añadir más estadísticas al dashboard.
 
-Añadir un panel simple para ver ganancias y estadísticas básicas.
+Implementar notificaciones en tiempo real.
+
+Agregar funcionalidad de empleados/administradores.
 
 👨‍💻 Autor
 
-Proyecto personal de Franco Sciascia, como práctica de backend con Java, Spring Boot y bases de datos relacionales, buscando mejorar la calidad de código y testeando con Postman.
+Proyecto personal de Franco Sciascia, como práctica de backend con Java, Spring Boot y bases de datos relacionales, buscando mejorar la calidad de código y ahora con interfaz web completa.
