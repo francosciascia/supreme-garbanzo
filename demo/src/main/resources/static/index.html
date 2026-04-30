@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Comercial</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-title">
+                <i class="fas fa-store"></i>
+                Gestión Comercial
+            </h1>
+            <ul class="nav-menu">
+                <li><a href="#" onclick="showSection('dashboard')" class="active">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="#" onclick="showSection('productos')">
+                    <i class="fas fa-box"></i> Productos
+                </a></li>
+                <li><a href="#" onclick="showSection('ventas')">
+                    <i class="fas fa-shopping-cart"></i> Ventas
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="section-header">
+                <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+                <p>Resumen general del sistema</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalProductos">-</h3>
+                        <p>Total Productos</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalVentas">-</h3>
+                        <p>Total Ventas</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalIngresos">$0.00</h3>
+                        <p>Ingresos Totales</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="productosBajoStock">-</h3>
+                        <p>Productos con Stock Bajo</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-actions">
+                <button onclick="showSection('productos')" class="btn-primary">
+                    <i class="fas fa-plus"></i> Gestionar Productos
+                </button>
+                <button onclick="showSection('ventas')" class="btn-secondary">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </button>
+            </div>
+        </section>
+
+        <!-- Productos Section -->
+        <section id="productos" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-box"></i> Gestión de Productos</h2>
+                <button onclick="showCreateProductModal()" class="btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Producto
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="productosTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Stock</th>
+                            <th>Precio Venta</th>
+                            <th>Vencimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Cargando productos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Ventas Section -->
+        <section id="ventas" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-shopping-cart"></i> Gestión de Ventas</h2>
+                <button onclick="showCreateSaleModal()" class="btn-primary">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="ventasTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Items</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ventasTableBody">
+                        <tr>
+                            <td colspan="5" class="loading">Cargando ventas...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal para Crear Producto -->
+    <div id="createProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Nuevo Producto</h3>
+                <span class="close" onclick="closeModal('createProductModal')">&times;</span>
+            </div>
+            <form id="createProductForm" onsubmit="createProduct(event)">
+                <div class="form-group">
+                    <label for="productName">Nombre *</label>
+                    <input type="text" id="productName" required minlength="3" maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Descripción</label>
+                    <textarea id="productDescription" maxlength="500" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productStock">Stock *</label>
+                        <input type="number" id="productStock" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="productVencimiento">¿Vence?</label>
+                        <select id="productVencimiento">
+                            <option value="false">No</option>
+                            <option value="true">Sí</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productCosto">Costo *</label>
+                        <input type="number" id="productCosto" required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrecioVenta">Precio Venta *</label>
+                        <input type="number" id="productPrecioVenta" required min="0.01" step="0.01">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="closeModal('createProductModal')" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Crear Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Crear Venta -->
+    <div id="createSaleModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Nueva Venta</h3>
+                <span class="close" onclick="closeModal('createSaleModal')">&times;</span>
+            </div>
+            <form id="createSaleForm" onsubmit="createSale(event)">
+                <div class="sale-items">
+                    <h4>Items de la Venta</h4>
+                    <div id="saleItems" class="sale-items-list">
+                        <!-- Items se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" onclick="addSaleItem()" class="btn-secondary">
+                        <i class="fas fa-plus"></i> Agregar Item
+                    </button>
+                </div>
+
+                <div class="sale-summary">
+                    <div class="summary-row">
+                        <strong>Total: $<span id="saleTotal">0.00</span></strong>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="closeModal('createSaleModal')" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Crear Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
