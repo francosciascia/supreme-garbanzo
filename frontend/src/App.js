@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import Productos from './components/Productos';
+import Categorias from './components/Categorias';
 import Ventas from './components/Ventas';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -57,34 +58,42 @@ function App() {
       <div className="App">
         <Navbar user={user} onLogout={handleLogout} />
         <main className="main-content">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard user={user} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/productos"
-              element={
-                <ProtectedRoute>
-                  <Productos user={user} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ventas"
-              element={
-                <ProtectedRoute>
-                  <Ventas user={user} />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+           <Routes>
+             <Route
+               path="/"
+               element={
+                 <ProtectedRoute>
+                   <Dashboard user={user} />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/productos"
+               element={
+                 <ProtectedRoute>
+                   <Productos user={user} />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/categorias"
+               element={
+                 <ProtectedRoute>
+                   <Categorias user={user} />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/ventas"
+               element={
+                 <ProtectedRoute>
+                   <Ventas user={user} />
+                 </ProtectedRoute>
+               }
+             />
+             <Route path="/unauthorized" element={<UnauthorizedPage />} />
+             <Route path="*" element={<Navigate to="/" replace />} />
+           </Routes>
         </main>
       </div>
     </Router>

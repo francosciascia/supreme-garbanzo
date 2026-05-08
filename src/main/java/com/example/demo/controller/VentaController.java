@@ -21,7 +21,7 @@ import java.util.List;
  * Proporciona endpoints para crear, actualizar y consultar ventas
  */
 @RestController
-@RequestMapping("/ventas")
+@RequestMapping("/api/ventas")
 @Tag(name = "Ventas", description = "Operaciones sobre ventas del sistema")
 public class VentaController {
 

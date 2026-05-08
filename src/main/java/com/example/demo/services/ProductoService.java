@@ -1,8 +1,11 @@
 package com.example.demo.services;
 
+import com.example.demo.dto.CategoriaDTO;
 import com.example.demo.dto.ProductoDTO;
 import com.example.demo.dto.ProductoCUDTO;
+import com.example.demo.models.Categoria;
 import com.example.demo.models.Producto;
+import com.example.demo.repository.CategoriaRepository;
 import com.example.demo.repository.ProductoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -14,9 +17,11 @@ import java.util.Optional;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
+    private final CategoriaRepository categoriaRepository;
 
-    public ProductoService(ProductoRepository productoRepository){
+    public ProductoService(ProductoRepository productoRepository, CategoriaRepository categoriaRepository){
         this.productoRepository = productoRepository;
+        this.categoriaRepository = categoriaRepository;
     }
 
     // Vista ---------------
@@ -24,30 +29,39 @@ public class ProductoService {
     public List<ProductoDTO> listar(){
         return productoRepository.findAll()
                 .stream()
-                .map(p -> new ProductoDTO(
-                        p.getId(),
-                        p.getNombre(),
-                        p.getDescripcion(),
-                        p.getStock(),
-                        p.isVencimiento(),
-                        p.getCosto(),
-                        p.getPrecioVenta()
-                ))
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    @Transactional
+    public List<ProductoDTO> listarPorCategoria(Long categoriaId){
+        return productoRepository.findByCategoria_Id(categoriaId)
+                .stream()
+                .map(this::mapToDTO)
                 .toList();
     }
 
     @Transactional
     public Optional<ProductoDTO> detalle(Long id){
         return productoRepository.findById(id)
-                .map(p -> new ProductoDTO(
-                        p.getId(),
-                        p.getNombre(),
-                        p.getDescripcion(),
-                        p.getStock(),
-                        p.isVencimiento(),
-                        p.getCosto(),
-                        p.getPrecioVenta()
-                ));
+                .map(this::mapToDTO);
+    }
+
+    private ProductoDTO mapToDTO(Producto p) {
+        CategoriaDTO categDTO = p.getCategoria() != null ?
+                new CategoriaDTO(p.getCategoria().getId(), p.getCategoria().getNombre(), p.getCategoria().getDescripcion())
+                : null;
+
+        return new ProductoDTO(
+                p.getId(),
+                p.getNombre(),
+                p.getDescripcion(),
+                p.getStock(),
+                p.isVencimiento(),
+                p.getCosto(),
+                p.getPrecioVenta(),
+                categDTO
+        );
     }
 
     // Escritura
@@ -56,6 +70,12 @@ public class ProductoService {
     public ProductoDTO crear(ProductoCUDTO productoDTO){
         validarPreciosCosto(productoDTO.costo(), productoDTO.precioVenta());
         
+        Categoria categoria = null;
+        if (productoDTO.categoriaId() != null) {
+            categoria = categoriaRepository.findById(productoDTO.categoriaId())
+                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+        }
+        
         Producto producto = Producto.builder()
                 .nombre(productoDTO.nombre())
                 .descripcion(productoDTO.descripcion())
@@ -63,19 +83,12 @@ public class ProductoService {
                 .vencimiento(productoDTO.vencimiento())
                 .costo(productoDTO.costo())
                 .precioVenta(productoDTO.precioVenta())
+                .categoria(categoria)
                 .build();
         
         Producto guardado = productoRepository.save(producto);
         
-        return new ProductoDTO(
-                guardado.getId(),
-                guardado.getNombre(),
-                guardado.getDescripcion(),
-                guardado.getStock(),
-                guardado.isVencimiento(),
-                guardado.getCosto(),
-                guardado.getPrecioVenta()
-        );
+        return mapToDTO(guardado);
     }
 
     @Transactional
@@ -90,18 +103,16 @@ public class ProductoService {
         if (cambios.stock() != null) p.setStock(cambios.stock());
         if (cambios.precioVenta() != null) p.setPrecioVenta(cambios.precioVenta());
         if (cambios.descripcion() != null) p.setDescripcion(cambios.descripcion());
+        
+        if (cambios.categoriaId() != null) {
+            Categoria categoria = categoriaRepository.findById(cambios.categoriaId())
+                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+            p.setCategoria(categoria);
+        }
 
         Producto actualizado = productoRepository.save(p);
         
-        return new ProductoDTO(
-                actualizado.getId(),
-                actualizado.getNombre(),
-                actualizado.getDescripcion(),
-                actualizado.getStock(),
-                actualizado.isVencimiento(),
-                actualizado.getCosto(),
-                actualizado.getPrecioVenta()
-        );
+        return mapToDTO(actualizado);
     }
 
     @Transactional

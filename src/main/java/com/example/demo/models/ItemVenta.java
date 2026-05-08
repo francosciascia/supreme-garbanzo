@@ -1,9 +1,11 @@
 package com.example.demo.models;
-
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+
 
 import java.math.BigDecimal;
 
@@ -22,6 +24,7 @@ public class ItemVenta {
     private Long id;
 
     // dueño de la relación Venta-Item (tiene la FK real)
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "venta_id", nullable = false)
     private Venta venta;
@@ -34,6 +37,7 @@ public class ItemVenta {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal precioUnitario;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "producto_id", nullable = false) // FK -> productos.id
     private Producto producto;

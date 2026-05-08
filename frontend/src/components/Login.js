@@ -44,7 +44,7 @@ function Login({ onLoginSuccess }) {
         setError('');
 
         try {
-            const response = await axios.post('/api/auth/login', loginForm);
+            const response = await axios.post('http://localhost:8083/api/auth/login', loginForm);
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data));
             onLoginSuccess(response.data);

@@ -1,19 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
+import api from '../hooks/api';
 import './Productos.css';
 
 const Productos = ({ user }) => {
   const { products, loading, error, createProduct, updateProduct, deleteProduct } = useProducts();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [categorias, setCategorias] = useState([]);
+  const [selectedCategoria, setSelectedCategoria] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
     stock: 0,
     vencimiento: false,
     costo: 0,
-    precioVenta: 0
+    precioVenta: 0,
+    categoriaId: null
   });
+
+  // Cargar categorías
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const response = await api.get('/categorias');
+        setCategorias(response.data);
+      } catch (err) {
+        console.error('Error cargando categorías:', err);
+      }
+    };
+    fetchCategorias();
+  }, []);
+
+  // Filtrar productos por categoría
+  useEffect(() => {
+    if (selectedCategoria) {
+      setFilteredProducts(products.filter(p => p.categoria && p.categoria.id === selectedCategoria));
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [products, selectedCategoria]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +65,8 @@ const Productos = ({ user }) => {
       stock: product.stock,
       vencimiento: product.vencimiento,
       costo: product.costo,
-      precioVenta: product.precioVenta
+      precioVenta: product.precioVenta,
+      categoriaId: product.categoria?.id || null
     });
     setShowModal(true);
   };
@@ -60,7 +88,8 @@ const Productos = ({ user }) => {
       stock: 0,
       vencimiento: false,
       costo: 0,
-      precioVenta: 0
+      precioVenta: 0,
+      categoriaId: null
     });
     setEditingProduct(null);
   };
@@ -71,7 +100,15 @@ const Productos = ({ user }) => {
   };
 
   if (loading) return <div className="loading">Cargando productos...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  if (error) {
+    return (
+      <div className="error-container">
+        <h2>Error eliminando productos</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="productos">
@@ -82,27 +119,58 @@ const Productos = ({ user }) => {
         </button>
       </div>
 
+      {/* Selector de Categorías */}
+      <div className="categoria-filter">
+        <h3>Filtrar por Categoría:</h3>
+        <div className="categoria-buttons">
+          <button
+            className={`categoria-btn ${!selectedCategoria ? 'active' : ''}`}
+            onClick={() => setSelectedCategoria(null)}
+          >
+            Todas
+          </button>
+          {categorias.map(cat => (
+            <button
+              key={cat.id}
+              className={`categoria-btn ${selectedCategoria === cat.id ? 'active' : ''}`}
+              onClick={() => setSelectedCategoria(cat.id)}
+            >
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="products-grid">
-        {products.map(product => (
-          <div key={product.id} className="product-card">
-            <div className="product-header">
-              <h3>{product.nombre}</h3>
-              <div className="product-actions">
-                <button className="btn-edit" onClick={() => handleEdit(product)}>
-                  <i className="fas fa-edit"></i>
-                </button>
-                <button className="btn-delete" onClick={() => handleDelete(product.id)}>
-                  <i className="fas fa-trash"></i>
-                </button>
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map(product => (
+            <div key={product.id} className="product-card">
+              <div className="product-header">
+                <h3>{product.nombre}</h3>
+                {product.categoria && (
+                  <span className="categoria-badge">{product.categoria.nombre}</span>
+                )}
+                <div className="product-actions">
+                  <button className="btn-edit" onClick={() => handleEdit(product)}>
+                    <i className="fas fa-edit"></i>
+                  </button>
+                  <button className="btn-delete" onClick={() => handleDelete(product.id)}>
+                    <i className="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <p>{product.descripcion}</p>
+              <div className="product-details">
+                <span>Stock: {product.stock}</span>
+                <span>Precio: ${product.precioVenta}</span>
               </div>
             </div>
-            <p>{product.descripcion}</p>
-            <div className="product-details">
-              <span>Stock: {product.stock}</span>
-              <span>Precio: ${product.precioVenta}</span>
-            </div>
+          ))
+        ) : (
+          <div className="no-products">
+            <p>No hay productos en esta categoría</p>
           </div>
-        ))}
+        )}
       </div>
 
       {showModal && (
@@ -130,6 +198,20 @@ const Productos = ({ user }) => {
                   value={formData.descripcion}
                   onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                 />
+              </div>
+              <div className="form-group">
+                <label>Categoría:</label>
+                <select
+                  value={formData.categoriaId || ''}
+                  onChange={(e) => setFormData({...formData, categoriaId: e.target.value ? parseInt(e.target.value) : null})}
+                >
+                  <option value="">Sin categoría</option>
+                  {categorias.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Stock:</label>

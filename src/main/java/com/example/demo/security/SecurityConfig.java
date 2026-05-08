@@ -43,21 +43,85 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        // Rutas públicas
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
 
-                        // Rutas protegidas por rol
-                        .requestMatchers(HttpMethod.GET, "/productos/**").hasAnyRole("USUARIO", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/productos").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/productos/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/productos/**").hasRole("SUPER_ADMIN")
+                        // Archivos públicos
+                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/assets/**").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/ventas/**").hasAnyRole("USUARIO", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/ventas").hasAnyRole("USUARIO", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/ventas/**").hasRole("SUPER_ADMIN")
+                        // Auth pública
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                        // Cualquier otra solicitud debe estar autenticada
+                        // Categorías - GET público
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/categorias",
+                                "/api/categorias/**"
+                        ).permitAll()
+
+                        // Categorías - ADMIN / SUPER_ADMIN
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/categorias"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/categorias/**"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/categorias/**"
+                        ).hasRole("SUPER_ADMIN")
+
+                        // Productos - GET público
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/productos",
+                                "/api/productos/**"
+                        ).permitAll()
+
+                        // Productos - ADMIN / SUPER_ADMIN
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/productos"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/productos/**"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/productos/**"
+                        ).hasRole("SUPER_ADMIN")
+
+                        // Ventas - autenticados
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/ventas",
+                                "/api/ventas/**"
+                        ).authenticated()
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/ventas"
+                        ).authenticated()
+
+                        // Ventas - solo SUPER_ADMIN
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/ventas/**"
+                        ).hasRole("SUPER_ADMIN")
+
+                        // Swagger
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

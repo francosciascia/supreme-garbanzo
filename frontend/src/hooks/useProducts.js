@@ -6,18 +6,34 @@ export const useProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/productos');
-      setProducts(response.data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchProducts = async () => {
+  setLoading(true);
+
+  try {
+    const response = await api.get('/productos');
+
+    const productos = Array.isArray(response.data)
+      ? response.data
+      : response.data.content || response.data.data || [];
+
+    setProducts(productos);
+    setError(null);
+
+  } catch (err) {
+    console.error('Error fetching products:', err);
+
+    const errorMsg =
+      err.response?.data?.message ||
+      err.message ||
+      'Error cargando productos';
+
+    setError(errorMsg);
+    setProducts([]);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   const createProduct = async (productData) => {
     try {

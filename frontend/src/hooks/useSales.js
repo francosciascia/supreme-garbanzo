@@ -6,29 +6,48 @@ export const useSales = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchSales = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/ventas');
-      setSales(response.data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchSales = async () => {
+  setLoading(true);
 
-  const createSale = async (saleData) => {
-    try {
-      const response = await api.post('/ventas', saleData);
-      setSales([...sales, response.data]);
-      return response.data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
+  try {
+    const response = await api.get('/ventas');
+
+    const ventas = Array.isArray(response.data)
+      ? response.data
+      : response.data.content || response.data.data || [];
+
+    setSales(ventas);
+    setError(null);
+
+  } catch (err) {
+    console.error('Error fetching sales:', err);
+
+    const errorMsg =
+      err.response?.data?.message ||
+      err.message ||
+      'Error cargando ventas';
+
+    setError(errorMsg);
+    setSales([]);
+
+  } finally {
+    setLoading(false);
+  }
+};
+
+const createSale = async (saleData) => {
+  try {
+    const response = await api.post('/ventas', saleData);
+
+    await fetchSales();
+
+    return response.data;
+  } catch (err) {
+    console.error('Error creating sale:', err);
+    setError(err.message);
+    throw err;
+  }
+};
 
   useEffect(() => {
     fetchSales();

@@ -4,6 +4,7 @@ import com.example.demo.dto.ProductoCUDTO;
 import com.example.demo.dto.ProductoDTO;
 import com.example.demo.models.Producto;
 import com.example.demo.repository.ProductoRepository;
+import com.example.demo.repository.CategoriaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ class ProductoServiceTest {
     @Mock
     private ProductoRepository productoRepository;
 
+    @Mock
+    private CategoriaRepository categoriaRepository;
+
     @InjectMocks
     private ProductoService productoService;
 
@@ -54,7 +58,8 @@ class ProductoServiceTest {
                 10,
                 false,
                 new BigDecimal("500.00"),
-                new BigDecimal("800.00")
+                new BigDecimal("800.00"),
+                null  // categoriaId
         );
     }
 
@@ -123,14 +128,15 @@ class ProductoServiceTest {
     @DisplayName("Debería fallar al crear producto con precio venta menor a costo")
     void testCrearProductoPrecioInvalido() {
         // Arrange
-        ProductoCUDTO productoInvalido = new ProductoCUDTO(
-                "Producto",
-                "Descripción",
-                10,
-                false,
-                new BigDecimal("500.00"),
-                new BigDecimal("300.00") // precio < costo
-        );
+         ProductoCUDTO productoInvalido = new ProductoCUDTO(
+                 "Producto",
+                 "Descripción",
+                 10,
+                 false,
+                 new BigDecimal("500.00"),
+                 new BigDecimal("300.00"), // precio < costo
+                 null  // categoriaId
+         );
 
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> {
@@ -144,14 +150,15 @@ class ProductoServiceTest {
     @DisplayName("Debería actualizar un producto exitosamente")
     void testActualizarProducto() {
         // Arrange
-        ProductoCUDTO cambios = new ProductoCUDTO(
-                "Laptop Actualizada",
-                "Nueva descripción",
-                5,
-                false,
-                new BigDecimal("400.00"),
-                new BigDecimal("700.00")
-        );
+         ProductoCUDTO cambios = new ProductoCUDTO(
+                 "Laptop Actualizada",
+                 "Nueva descripción",
+                 5,
+                 false,
+                 new BigDecimal("400.00"),
+                 new BigDecimal("700.00"),
+                 null  // categoriaId
+         );
 
         when(productoRepository.findById(1L)).thenReturn(Optional.of(productoMock));
         when(productoRepository.save(any(Producto.class))).thenReturn(productoMock);

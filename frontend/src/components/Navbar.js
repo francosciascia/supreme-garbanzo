@@ -50,6 +50,11 @@ const Navbar = ({ user, onLogout }) => {
             </Link>
           </li>
           <li>
+            <Link to="/categorias" className={location.pathname === '/categorias' ? 'active' : ''}>
+              <i className="fas fa-tags"></i> Categorías
+            </Link>
+          </li>
+          <li>
             <Link to="/ventas" className={location.pathname === '/ventas' ? 'active' : ''}>
               <i className="fas fa-shopping-cart"></i> Ventas
             </Link>

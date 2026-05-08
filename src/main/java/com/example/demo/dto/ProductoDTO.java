@@ -9,5 +9,6 @@ public record ProductoDTO(
         Integer stock,
         Boolean vencimiento,
         BigDecimal costo,
-        BigDecimal precioVenta
+        BigDecimal precioVenta,
+        CategoriaDTO categoria
 ) {}

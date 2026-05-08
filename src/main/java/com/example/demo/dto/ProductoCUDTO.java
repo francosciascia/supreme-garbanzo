@@ -26,5 +26,7 @@ public record ProductoCUDTO(
 
         @NotNull(message = "El precio de venta es obligatorio")
         @DecimalMin(value = "0.01", message = "El precio de venta debe ser mayor a 0")
-        BigDecimal precioVenta
+        BigDecimal precioVenta,
+
+        Long categoriaId
 ) {}

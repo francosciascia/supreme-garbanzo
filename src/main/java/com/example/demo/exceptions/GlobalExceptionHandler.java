@@ -84,10 +84,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex,
             WebRequest request) {
-        
+
+        ex.printStackTrace();
+
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Error interno del servidor",
+                ex.getClass().getSimpleName() + ": " + ex.getMessage(),
                 null,
                 LocalDateTime.now()
         );

@@ -4,13 +4,30 @@ import { useSales } from '../hooks/useSales';
 import './Dashboard.css';
 
 const Dashboard = ({ user }) => {
-  const { products, loading: productsLoading } = useProducts();
-  const { sales, loading: salesLoading } = useSales();
+  const { products, loading: productsLoading, error: productsError } = useProducts();
+  const { sales, loading: salesLoading, error: salesError } = useSales();
+
+  const salesArray = Array.isArray(sales) ? sales : [];
 
   const totalProducts = products.length;
-  const totalSales = sales.length;
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalSales = salesArray.length;
+
+  const totalRevenue = salesArray.reduce(
+    (sum, sale) => sum + (sale.total || 0),
+    0
+  );
+
   const lowStockProducts = products.filter(p => p.stock < 10).length;
+  if (productsError || salesError) {
+    return (
+      <div className="error-container">
+        <h2>Error cargando datos</h2>
+        {productsError && <p>Productos: {productsError}</p>}
+        {salesError && <p>Ventas: {salesError}</p>}
+        <button onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
 
   if (productsLoading || salesLoading) {
     return <div className="loading">Cargando dashboard...</div>;

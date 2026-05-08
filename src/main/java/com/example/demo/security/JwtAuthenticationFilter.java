@@ -34,11 +34,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String email = tokenProvider.getEmailFromToken(jwt);
                 
                 // Obtener el rol del token
-                String rol = Jwts.parserBuilder()
-                        .setSigningKey(((com.example.demo.security.JwtTokenProvider) tokenProvider).getSigningKey())
+                String rol = Jwts.parser()
+                        .verifyWith(tokenProvider.getSigningKey())
                         .build()
-                        .parseClaimsJws(jwt)
-                        .getBody()
+                        .parseSignedClaims(jwt)
+                        .getPayload()
                         .get("rol", String.class);
 
                 // Crear autoridades basadas en el rol

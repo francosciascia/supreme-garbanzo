@@ -3,7 +3,7 @@ import { useSales } from '../hooks/useSales';
 import { useProducts } from '../hooks/useProducts';
 import './Ventas.css';
 
-const Ventas = ({ user }) => {const Ventas = () => {
+const Ventas = ({ user }) => {
   const { sales, loading, error, createSale } = useSales();
   const { products } = useProducts();
   const [showModal, setShowModal] = useState(false);
@@ -52,7 +52,15 @@ const Ventas = ({ user }) => {const Ventas = () => {
   };
 
   if (loading) return <div className="loading">Cargando ventas...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  if (error) {
+    return (
+      <div className="error-container">
+        <h2>Error cargando ventas</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="ventas">
@@ -63,28 +71,34 @@ const Ventas = ({ user }) => {const Ventas = () => {
         </button>
       </div>
 
-      <div className="sales-list">
-        {sales.map(sale => (
-          <div key={sale.id} className="sale-card">
-            <div className="sale-header">
-              <h3>Venta #{sale.id}</h3>
-              <span className="sale-date">{new Date(sale.fecha).toLocaleDateString()}</span>
-            </div>
-            <div className="sale-total">
-              Total: ${sale.total.toFixed(2)}
-            </div>
-            <div className="sale-items">
-              {sale.items.map((item, index) => (
-                <div key={index} className="sale-item">
-                  <span>{item.nombreProducto}</span>
-                  <span>x{item.cantidad}</span>
-                  <span>${item.subtotal.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
+<div className="sales-list">
+  {sales.map(sale => (
+    <div key={sale.id} className="sale-card">
+      <div className="sale-header">
+        <h3>Venta #{sale.id}</h3>
+        <span className="sale-date">
+          {new Date(sale.fecha).toLocaleDateString()}
+        </span>
+      </div>
+
+      <div className="sale-total">
+        Total: ${Number(sale.total || 0).toFixed(2)}
+      </div>
+
+      <div className="sale-items">
+        {(sale.items || []).map((item, index) => (
+          <div key={index} className="sale-item">
+            <span>{item.nombreProducto}</span>
+            <span>x{item.cantidad}</span>
+            <span>
+              ${Number(item.subtotal || 0).toFixed(2)}
+            </span>
           </div>
         ))}
       </div>
+    </div>
+  ))}
+</div>
 
       {showModal && (
         <div className="modal-overlay">

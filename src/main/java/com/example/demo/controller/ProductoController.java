@@ -23,7 +23,7 @@ import java.util.List;
  * Proporciona endpoints para CRUD de productos
  */
 @RestController
-@RequestMapping("/productos")
+@RequestMapping("/api/productos")
 @Tag(name = "Productos", description = "Operaciones sobre productos del sistema")
 public class ProductoController {
     private final ProductoService productoService;
@@ -38,10 +38,13 @@ public class ProductoController {
      * @return Lista de ProductoDTO
      */
     @GetMapping
-    @Operation(summary = "Listar productos", description = "Obtiene la lista de todos los productos disponibles")
+    @Operation(summary = "Listar productos", description = "Obtiene la lista de todos los productos disponibles. Opcionalmente filtrar por categoría")
     @ApiResponse(responseCode = "200", description = "Lista de productos obtenida exitosamente",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductoDTO.class)))
-    public List<ProductoDTO> listar(){
+    public List<ProductoDTO> listar(@RequestParam(required = false) Long categoriaId){
+        if (categoriaId != null) {
+            return productoService.listarPorCategoria(categoriaId);
+        }
         return productoService.listar();
     }
 
