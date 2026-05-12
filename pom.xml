@@ -106,6 +106,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -135,6 +142,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
+
+
             <!-- Frontend Maven Plugin para React -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
@@ -160,19 +169,6 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <arguments>install</arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm-build</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <phase>compile</phase>
-                        <configuration>
-                            <arguments>run build</arguments>
-                            <environmentVariables>
-                                <BUILD_PATH>../src/main/resources/static</BUILD_PATH>
-                            </environmentVariables>
                         </configuration>
                     </execution>
                 </executions>
