@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { PlusIcon, PencilIcon, Trash2Icon, XIcon, SearchIcon } from 'lucide-react';
 import api from '../hooks/api';
+import PaginationBar from './PaginationBar';
 import './Categorias.css';
 
 const Categorias = ({ user }) => {
@@ -8,10 +10,49 @@ const Categorias = ({ user }) => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('nombre-asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: ''
   });
+
+  const filteredCategorias = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    const result = categorias.filter((c) => {
+      if (!q) return true;
+      const haystack = [c.nombre, c.descripcion]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+
+    const collator = new Intl.Collator('es', { sensitivity: 'base' });
+    const comparators = {
+      'nombre-asc': (a, b) => collator.compare(a.nombre, b.nombre),
+      'nombre-desc': (a, b) => collator.compare(b.nombre, a.nombre),
+      'id-asc': (a, b) => Number(a.id) - Number(b.id),
+      'id-desc': (a, b) => Number(b.id) - Number(a.id),
+    };
+    const cmp = comparators[sortBy] || comparators['nombre-asc'];
+    return [...result].sort(cmp);
+  }, [categorias, search, sortBy]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy, pageSize]);
+
+  const totalItems = filteredCategorias.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedCategorias = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredCategorias.slice(start, start + pageSize);
+  }, [filteredCategorias, safePage, pageSize]);
 
   // Cargar categorías
   useEffect(() => {
@@ -97,11 +138,35 @@ const Categorias = ({ user }) => {
       <div className="header">
         <h1>Gestión de Categorías</h1>
         <button className="btn-primary" onClick={openCreateModal}>
-          <i className="fas fa-plus"></i> Nueva Categoría
+          <PlusIcon size={16} /> Nueva Categoría
         </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
+
+      <div className="filters-bar">
+        <div className="filters-search">
+          <SearchIcon size={16} className="filters-search-icon" />
+          <input
+            type="search"
+            placeholder="Buscar categoría..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="filters-select"
+          title="Ordenar por"
+        >
+          <option value="nombre-asc">Nombre (A-Z)</option>
+          <option value="nombre-desc">Nombre (Z-A)</option>
+          <option value="id-asc">Más antiguas primero</option>
+          <option value="id-desc">Más recientes primero</option>
+        </select>
+      </div>
 
       <div className="categorias-table-container">
         <table className="categorias-table">
@@ -113,8 +178,8 @@ const Categorias = ({ user }) => {
             </tr>
           </thead>
           <tbody>
-            {categorias.length > 0 ? (
-              categorias.map(categoria => (
+            {filteredCategorias.length > 0 ? (
+              paginatedCategorias.map(categoria => (
                 <tr key={categoria.id}>
                   <td>
                     <span className="categoria-name">{categoria.nombre}</span>
@@ -126,14 +191,14 @@ const Categorias = ({ user }) => {
                       onClick={() => handleEdit(categoria)}
                       title="Editar"
                     >
-                      <i className="fas fa-edit"></i>
+                      <PencilIcon size={18} />
                     </button>
                     <button
                       className="btn-delete"
                       onClick={() => handleDelete(categoria.id)}
                       title="Eliminar"
                     >
-                      <i className="fas fa-trash"></i>
+                      <Trash2Icon size={18} />
                     </button>
                   </td>
                 </tr>
@@ -141,7 +206,9 @@ const Categorias = ({ user }) => {
             ) : (
               <tr>
                 <td colSpan="3" className="no-data">
-                  No hay categorías registradas
+                  {search
+                    ? 'No se encontraron categorías que coincidan con la búsqueda'
+                    : 'No hay categorías registradas'}
                 </td>
               </tr>
             )}
@@ -149,13 +216,23 @@ const Categorias = ({ user }) => {
         </table>
       </div>
 
+      {filteredCategorias.length > 0 && (
+        <PaginationBar
+          page={safePage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
               <h2>{editingCategoria ? 'Editar Categoría' : 'Nueva Categoría'}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>
-                <i className="fas fa-times"></i>
+                <XIcon size={20} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
