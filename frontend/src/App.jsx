@@ -10,7 +10,7 @@ import Categorias from "./components/Categorias"
 import Clientes from "./components/Clientes"
 import Ventas from "./components/Ventas"
 import ProtectedRoute from "./components/ProtectedRoute"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "./components/app-sidebar"
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
