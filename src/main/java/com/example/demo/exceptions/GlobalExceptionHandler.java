@@ -16,15 +16,15 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
-     * Maneja excepciones de validación de @Valid
+     * Validaciones de @Valid.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex,
             WebRequest request) {
-        
+
         Map<String, String> errors = new HashMap<>();
-        
+
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
@@ -42,43 +42,62 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Maneja IllegalArgumentException (Producto no existe, validaciones de negocio)
+     * Argumentos inválidos / validaciones de negocio.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
             IllegalArgumentException ex,
             WebRequest request) {
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                null,
-                LocalDateTime.now()
-        );
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     /**
-     * Maneja IllegalStateException (Sin stock suficiente)
+     * Conflictos de estado (sin stock, recursos duplicados, etc.).
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(
             IllegalStateException ex,
             WebRequest request) {
-        
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                null,
-                LocalDateTime.now()
-        );
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     /**
-     * Maneja todas las excepciones no capturadas
+     * Recurso no encontrado.
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex,
+            WebRequest request) {
+
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /**
+     * Autenticación fallida / token inválido.
+     */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException(
+            UnauthorizedException ex,
+            WebRequest request) {
+
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    /**
+     * Conflictos de negocio explícitos (email/DNI duplicado, etc.).
+     */
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflictException(
+            ConflictException ex,
+            WebRequest request) {
+
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
+     * Fallback.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
@@ -87,14 +106,19 @@ public class GlobalExceptionHandler {
 
         ex.printStackTrace();
 
+        return build(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ex.getClass().getSimpleName() + ": " + ex.getMessage()
+        );
+    }
+
+    private ResponseEntity<ErrorResponse> build(HttpStatus status, String message) {
         ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                ex.getClass().getSimpleName() + ": " + ex.getMessage(),
+                status.value(),
+                message,
                 null,
                 LocalDateTime.now()
         );
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        return ResponseEntity.status(status).body(errorResponse);
     }
 }
-
