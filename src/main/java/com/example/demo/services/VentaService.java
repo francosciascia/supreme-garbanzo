@@ -2,12 +2,16 @@ package com.example.demo.services;
 
 import com.example.demo.dto.ItemVentaCreateDTO;
 import com.example.demo.dto.VentaCreateDTO;
+import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.models.Cliente;
 import com.example.demo.models.ItemVenta;
 import com.example.demo.models.Producto;
 import com.example.demo.models.Venta;
+import com.example.demo.repository.ClienteRepository;
 import com.example.demo.repository.ProductoRepository;
 import com.example.demo.repository.VentaRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,6 +24,9 @@ public class VentaService {
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
+
+    @Autowired(required = false)
+    private ClienteRepository clienteRepository;
 
     public VentaService(VentaRepository ventaRepository, ProductoRepository productoRepository) {
         this.ventaRepository = ventaRepository;
@@ -43,30 +50,34 @@ public class VentaService {
         Venta venta = new Venta();
         venta.setFecha(java.time.LocalDate.now());
         venta.setTotal(java.math.BigDecimal.ZERO);
-        
+
+        if (ventaDTO.clienteId() != null && clienteRepository != null) {
+            Cliente cliente = clienteRepository.findById(ventaDTO.clienteId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Cliente no encontrado: " + ventaDTO.clienteId()));
+            venta.setCliente(cliente);
+        }
+
         for (ItemVentaCreateDTO itemDTO : ventaDTO.items()) {
-            // 1) Validar y cargar el producto desde DB
             Long productoId = itemDTO.productoId();
             Producto p = productoRepository.findById(productoId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
-            // 2) Stock suficiente
             if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
-                throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() + 
+                throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() +
                     ". Stock disponible: " + p.getStock());
             }
 
-            // 3) Crear item, descontar stock y congelar precio
             ItemVenta item = new ItemVenta();
             item.setProducto(p);
             item.setCantidad(itemDTO.cantidad());
             item.setPrecioUnitario(p.getPrecioVenta());
             item.setVenta(venta);
-            
+
             p.setStock(p.getStock() - itemDTO.cantidad());
             venta.addItems(item);
         }
-        
+
         return ventaRepository.save(venta);
     }
 

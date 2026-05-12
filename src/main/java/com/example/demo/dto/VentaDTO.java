@@ -8,5 +8,17 @@ public record VentaDTO(
         Long id,
         LocalDate fecha,
         BigDecimal total,
+        ClienteResumenDTO cliente,
         List<ItemVentaDTO> items
-) {}
+) {
+    /**
+     * Resumen mínimo del cliente embebido en una venta, para no traer
+     * todos los campos.
+     */
+    public record ClienteResumenDTO(
+            Long id,
+            String nombre,
+            String apellido,
+            Integer dni
+    ) {}
+}

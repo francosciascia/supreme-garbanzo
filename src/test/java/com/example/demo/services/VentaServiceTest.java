@@ -64,6 +64,7 @@ class VentaServiceTest {
         ventaMock.setTotal(BigDecimal.ZERO);
 
         ventaCreateDTOMock = new VentaCreateDTO(
+                null,
                 Arrays.asList(
                         new ItemVentaCreateDTO(1L, 2)
                 )
@@ -165,6 +166,7 @@ class VentaServiceTest {
         when(productoRepository.findById(999L)).thenReturn(Optional.empty());
 
         VentaCreateDTO ventaConProductoInvalido = new VentaCreateDTO(
+                null,
                 Arrays.asList(new ItemVentaCreateDTO(999L, 2))
         );
 

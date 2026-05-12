@@ -36,6 +36,10 @@ public class Venta {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal total;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    private Cliente cliente;
+
     @PrePersist
     @PreUpdate
     public void calcularTotal(){

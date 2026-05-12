@@ -97,6 +97,30 @@ public class SecurityConfig {
                                 "/api/productos/**"
                         ).hasRole("SUPER_ADMIN")
 
+                        // Clientes - lectura para usuarios autenticados
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/clientes",
+                                "/api/clientes/**"
+                        ).authenticated()
+
+                        // Clientes - ADMIN / SUPER_ADMIN pueden crear / editar
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/clientes"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/clientes/**"
+                        ).hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // Clientes - sólo SUPER_ADMIN elimina
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/clientes/**"
+                        ).hasRole("SUPER_ADMIN")
+
                         // Ventas - autenticados
                         .requestMatchers(
                                 HttpMethod.GET,

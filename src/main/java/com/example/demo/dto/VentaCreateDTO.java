@@ -6,6 +6,8 @@ import java.util.List;
 
 public record VentaCreateDTO(
 
+        Long clienteId,
+
         @NotEmpty(message = "La venta debe tener al menos un item")
         @Valid
         List<ItemVentaCreateDTO> items
