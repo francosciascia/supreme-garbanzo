@@ -22,7 +22,7 @@ public class OpenAPIConfig {
                         .description("API REST para gestión de productos y ventas")
                         .contact(new Contact()
                                 .name("Franco")
-                                .url("http://localhost:8080"))
+                                .url("http://localhost:8083"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")));

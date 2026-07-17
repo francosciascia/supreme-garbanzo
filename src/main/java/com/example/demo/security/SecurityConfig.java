@@ -26,6 +26,12 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private ApiAuthenticationEntryPoint authenticationEntryPoint;
+
+    @Autowired
+    private ApiAccessDeniedHandler accessDeniedHandler;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -42,11 +48,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authz -> authz
 
                         // Archivos públicos
-                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
-                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/assets/**").permitAll()
+                        .requestMatchers("/", "/login", "/productos", "/categorias", "/clientes", "/ventas",
+                                "/favicon.ico", "/VAADIN/**", "/frontend/**", "/webjars/**", "/icons/**",
+                                "/images/**", "/manifest.webmanifest", "/sw.js", "/offline.html").permitAll()
 
                         // Auth pública
                         .requestMatchers("/api/auth/**").permitAll()

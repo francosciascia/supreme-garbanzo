@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: franco
+      POSTGRES_USER: franco
+      POSTGRES_PASSWORD: franco
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U franco -d franco"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/franco
+      DB_USERNAME: franco
+      DB_PASSWORD: franco
+      JWT_SECRET: ${JWT_SECRET:-cambiar-esta-clave-en-produccion-con-al-menos-32-caracteres}
+    ports:
+      - "8083:8083"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,46 @@
+:root {
+  --lumo-primary-color: hsl(220, 72%, 48%);
+  --lumo-primary-text-color: hsl(220, 72%, 42%);
+  --lumo-border-radius-l: 14px;
+  --lumo-font-family: Inter, "Segoe UI", sans-serif;
+}
+
+html, body { background: #f5f7fb; }
+
+.content-view { padding: var(--lumo-space-l); }
+
+.brand { margin: var(--lumo-space-m); color: var(--lumo-primary-color); }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  color: var(--lumo-secondary-text-color);
+  border-radius: var(--lumo-border-radius-m);
+  text-decoration: none;
+}
+
+vaadin-app-layout::part(drawer) { overflow-x: hidden; }
+
+.nav-link:hover, .nav-link[highlight] { background: var(--lumo-primary-color-10pct); color: var(--lumo-primary-text-color); }
+.drawer-footer { border-top: 1px solid var(--lumo-contrast-10pct); }
+.user-identity { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
+
+.login-view { background: radial-gradient(circle at top, #1d4ed8, #0f172a 65%); }
+.login-card { padding: 2rem; border-radius: 18px; background: white; box-shadow: 0 24px 70px #0006; }
+.login-card h1 { margin-bottom: 0; color: var(--lumo-primary-color); }
+.login-card p { margin-top: 0; color: var(--lumo-secondary-text-color); }
+
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; width: 100%; }
+.metric-card { background: white; border: 1px solid var(--lumo-contrast-10pct); border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 18px #0f172a0d; }
+.metric-card span { color: var(--lumo-secondary-text-color); }
+.metric-card h3 { margin: .45rem 0 0; font-size: 1.65rem; }
+.pagination-bar { gap: var(--lumo-space-s); padding-top: var(--lumo-space-s); }
+.pagination-bar span { min-width: 220px; text-align: center; color: var(--lumo-secondary-text-color); }
+
+@media (max-width: 700px) {
+  .content-view { padding: var(--lumo-space-m); }
+}

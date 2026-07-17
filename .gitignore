@@ -32,6 +32,7 @@ buildNumber.properties
 # =========================
 .idea/
 .vscode/
+.vs/
 
 *.iml
 *.ipr
@@ -85,6 +86,9 @@ frontend-cra/
 # Embedded Node binaries inside frontend folders
 frontend/node/
 frontend-cra/node/
+
+# Vaadin generated frontend
+frontend/generated/
 
 # =========================
 # Temporary

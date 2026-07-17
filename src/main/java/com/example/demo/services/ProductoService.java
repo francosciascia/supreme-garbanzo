@@ -7,8 +7,10 @@ import com.example.demo.models.Categoria;
 import com.example.demo.models.Producto;
 import com.example.demo.repository.CategoriaRepository;
 import com.example.demo.repository.ProductoRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +27,7 @@ public class ProductoService {
     }
 
     // Vista ---------------
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProductoDTO> listar(){
         return productoRepository.findAll()
                 .stream()
@@ -33,7 +35,7 @@ public class ProductoService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProductoDTO> listarPorCategoria(Long categoriaId){
         return productoRepository.findByCategoria_Id(categoriaId)
                 .stream()
@@ -41,10 +43,16 @@ public class ProductoService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Optional<ProductoDTO> detalle(Long id){
         return productoRepository.findById(id)
                 .map(this::mapToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductoDTO> buscar(String search, Long categoriaId, Pageable pageable) {
+        String normalized = search == null ? "" : search.trim();
+        return productoRepository.buscar(normalized, categoriaId, pageable).map(this::mapToDTO);
     }
 
     private ProductoDTO mapToDTO(Producto p) {
@@ -103,6 +111,7 @@ public class ProductoService {
         if (cambios.stock() != null) p.setStock(cambios.stock());
         if (cambios.precioVenta() != null) p.setPrecioVenta(cambios.precioVenta());
         if (cambios.descripcion() != null) p.setDescripcion(cambios.descripcion());
+        if (cambios.vencimiento() != null) p.setVencimiento(cambios.vencimiento());
         
         if (cambios.categoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(cambios.categoriaId())

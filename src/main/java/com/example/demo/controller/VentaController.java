@@ -17,6 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * Controller para gestionar ventas.
@@ -52,10 +58,17 @@ public class VentaController {
     @Operation(summary = "Listar ventas", description = "Obtiene la lista de todas las ventas del sistema")
     @ApiResponse(responseCode = "200", description = "Lista de ventas obtenida exitosamente")
     public List<VentaDTO> listar(){
-        return ventaService.listar()
-                .stream()
-                .map(VentaMapper::toDTO)
-                .toList();
+        return ventaService.listarDTO();
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "Buscar ventas paginadas")
+    public Page<VentaDTO> buscar(
+            @RequestParam(required = false) Long clienteId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @PageableDefault(size = 20, sort = "fecha", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ventaService.buscar(clienteId, desde, hasta, pageable);
     }
 
     @PostMapping

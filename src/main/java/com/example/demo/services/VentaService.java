@@ -2,7 +2,9 @@ package com.example.demo.services;
 
 import com.example.demo.dto.ItemVentaCreateDTO;
 import com.example.demo.dto.VentaCreateDTO;
+import com.example.demo.dto.VentaDTO;
 import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.mapper.VentaMapper;
 import com.example.demo.models.Cliente;
 import com.example.demo.models.ItemVenta;
 import com.example.demo.models.Producto;
@@ -10,9 +12,13 @@ import com.example.demo.models.Venta;
 import com.example.demo.repository.ClienteRepository;
 import com.example.demo.repository.ProductoRepository;
 import com.example.demo.repository.VentaRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import java.time.LocalDate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,23 +31,47 @@ public class VentaService {
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
 
-    @Autowired(required = false)
-    private ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
-    public VentaService(VentaRepository ventaRepository, ProductoRepository productoRepository) {
+    public VentaService(VentaRepository ventaRepository, ProductoRepository productoRepository,
+                        ClienteRepository clienteRepository) {
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
+        this.clienteRepository = clienteRepository;
     }
 
     // ===== Lectura =====
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Venta> listar() {
         return ventaRepository.findAll();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
+    public List<VentaDTO> listarDTO() {
+        return ventaRepository.findAll()
+                .stream()
+                .map(VentaMapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Optional<Venta> detalle(Long id) {
         return ventaRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<VentaDTO> buscar(Long clienteId, LocalDate desde, LocalDate hasta, Pageable pageable) {
+        Specification<Venta> specification = (root, query, cb) -> cb.conjunction();
+        if (clienteId != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("cliente").get("id"), clienteId));
+        }
+        if (desde != null) {
+            specification = specification.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("fecha"), desde));
+        }
+        if (hasta != null) {
+            specification = specification.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+        }
+        return ventaRepository.findAll(specification, pageable).map(VentaMapper::toDTO);
     }
 
     // ===== Crear venta con DTO =====
@@ -51,7 +81,7 @@ public class VentaService {
         venta.setFecha(java.time.LocalDate.now());
         venta.setTotal(java.math.BigDecimal.ZERO);
 
-        if (ventaDTO.clienteId() != null && clienteRepository != null) {
+        if (ventaDTO.clienteId() != null) {
             Cliente cliente = clienteRepository.findById(ventaDTO.clienteId())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Cliente no encontrado: " + ventaDTO.clienteId()));
@@ -60,7 +90,7 @@ public class VentaService {
 
         for (ItemVentaCreateDTO itemDTO : ventaDTO.items()) {
             Long productoId = itemDTO.productoId();
-            Producto p = productoRepository.findById(productoId)
+            Producto p = productoRepository.findByIdForUpdate(productoId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
             if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
@@ -87,7 +117,7 @@ public class VentaService {
                 .orElseThrow(() -> new IllegalArgumentException("Venta no existe: " + ventaId));
 
         Long productoId = itemDTO.productoId();
-        Producto p = productoRepository.findById(productoId)
+        Producto p = productoRepository.findByIdForUpdate(productoId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
         if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
