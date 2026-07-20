@@ -36,6 +36,42 @@ public class Venta {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal total;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Estado estado = Estado.CONFIRMADA;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "medio_pago", nullable = false)
+    @Builder.Default
+    private MedioPago medioPago = MedioPago.EFECTIVO;
+
+    @Column(name = "monto_recibido", precision = 14, scale = 2)
+    private BigDecimal montoRecibido;
+
+    @Column(nullable = false, precision = 14, scale = 2)
+    @Builder.Default
+    private BigDecimal vuelto = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 14, scale = 2)
+    @Builder.Default
+    private BigDecimal descuento = BigDecimal.ZERO;
+
+    @Column(name = "monto_fiado", nullable = false, precision = 14, scale = 2)
+    @Builder.Default
+    private BigDecimal montoFiado = BigDecimal.ZERO;
+
+    @Column(name = "numero_comprobante", unique = true, length = 40)
+    private String numeroComprobante;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "caja_id")
+    private Caja caja;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Persona usuario;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
@@ -45,9 +81,11 @@ public class Venta {
     public void calcularTotal(){
         if (fecha == null) fecha = LocalDate.now();
         if (total == null) total = BigDecimal.ZERO;
-        total = items.stream()
+        BigDecimal bruto = items.stream()
                 .map(ItemVenta::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (descuento == null) descuento = BigDecimal.ZERO;
+        total = bruto.subtract(descuento).max(BigDecimal.ZERO);
     }
 
     public void addItems(ItemVenta itemVenta){
@@ -62,4 +100,7 @@ public class Venta {
             total = total.subtract(itemVenta.getSubtotal());
         }
     }
+
+    public enum Estado { CONFIRMADA, ANULADA }
+    public enum MedioPago { EFECTIVO, DEBITO, CREDITO, TRANSFERENCIA, CUENTA_CORRIENTE }
 }

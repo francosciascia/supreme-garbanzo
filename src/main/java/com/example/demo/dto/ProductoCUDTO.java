@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public record ProductoCUDTO(
 
@@ -28,5 +29,18 @@ public record ProductoCUDTO(
         @DecimalMin(value = "0.01", message = "El precio de venta debe ser mayor a 0")
         BigDecimal precioVenta,
 
-        Long categoriaId
-) {}
+        Long categoriaId,
+        String codigoBarras,
+        String marca,
+        @Min(value = 0, message = "El stock minimo no puede ser negativo") Integer stockMinimo,
+        String unidadVenta,
+        LocalDate fechaVencimiento,
+        @Min(2) Integer cantidadMinimaPromo,
+        @DecimalMin("0.01") BigDecimal precioPromocional
+) {
+    public ProductoCUDTO(String nombre, String descripcion, Integer stock, Boolean vencimiento,
+                         BigDecimal costo, BigDecimal precioVenta, Long categoriaId) {
+        this(nombre, descripcion, stock, vencimiento, costo, precioVenta, categoriaId,
+                null, null, 5, "UNIDAD", null, null, null);
+    }
+}

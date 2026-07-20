@@ -18,7 +18,9 @@ public final class ClienteMapper {
                 c.getTelefono(),
                 c.getDireccion(),
                 c.getFechaRegistro(),
-                c.isActivo()
+                c.isActivo(),
+                c.getSaldoCuenta(),
+                c.getLimiteCredito()
         );
     }
 }

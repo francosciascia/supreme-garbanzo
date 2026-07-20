@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "personas")
@@ -53,6 +54,16 @@ public class Persona {
     @Column(nullable = false)
     @Builder.Default
     private boolean activo = true;
+
+    @Column(name = "intentos_fallidos", nullable = false)
+    @Builder.Default
+    private int intentosFallidos = 0;
+
+    @Column(name = "bloqueado_hasta")
+    private LocalDateTime bloqueadoHasta;
+
+    @Column(name = "ultimo_acceso")
+    private LocalDateTime ultimoAcceso;
 
     @PrePersist
     public void prePersist() {

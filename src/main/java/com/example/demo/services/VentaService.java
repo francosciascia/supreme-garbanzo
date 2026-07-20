@@ -12,6 +12,15 @@ import com.example.demo.models.Venta;
 import com.example.demo.repository.ClienteRepository;
 import com.example.demo.repository.ProductoRepository;
 import com.example.demo.repository.VentaRepository;
+import com.example.demo.repository.CajaRepository;
+import com.example.demo.repository.MovimientoCajaRepository;
+import com.example.demo.repository.MovimientoStockRepository;
+import com.example.demo.repository.PersonaRepository;
+import com.example.demo.models.Caja;
+import com.example.demo.models.MovimientoCaja;
+import com.example.demo.models.MovimientoStock;
+import com.example.demo.models.LoteProducto;
+import com.example.demo.repository.LoteProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +28,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,12 +43,39 @@ public class VentaService {
     private final ProductoRepository productoRepository;
 
     private final ClienteRepository clienteRepository;
+    private final CajaRepository cajaRepository;
+    private final MovimientoCajaRepository movimientoCajaRepository;
+    private final MovimientoStockRepository movimientoStockRepository;
+    private final PersonaRepository personaRepository;
+    private final LoteProductoRepository loteProductoRepository;
 
+    @Autowired(required = false)
+    private ReglasOperativasService reglasOperativasService;
+
+    @Autowired(required = false)
+    private CuentaCorrienteService cuentaCorrienteService;
+
+    @Autowired(required = false)
+    private EmpleadoService empleadoService;
+
+    @Autowired
     public VentaService(VentaRepository ventaRepository, ProductoRepository productoRepository,
-                        ClienteRepository clienteRepository) {
+                        ClienteRepository clienteRepository, CajaRepository cajaRepository,
+                        MovimientoCajaRepository movimientoCajaRepository, MovimientoStockRepository movimientoStockRepository,
+                        PersonaRepository personaRepository, LoteProductoRepository loteProductoRepository) {
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
         this.clienteRepository = clienteRepository;
+        this.cajaRepository = cajaRepository;
+        this.movimientoCajaRepository = movimientoCajaRepository;
+        this.movimientoStockRepository = movimientoStockRepository;
+        this.personaRepository = personaRepository;
+        this.loteProductoRepository = loteProductoRepository;
+    }
+
+    public VentaService(VentaRepository ventaRepository, ProductoRepository productoRepository,
+                        ClienteRepository clienteRepository) {
+        this(ventaRepository, productoRepository, clienteRepository, null, null, null, null, null);
     }
 
     // ===== Lectura =====
@@ -77,9 +115,24 @@ public class VentaService {
     // ===== Crear venta con DTO =====
     @Transactional
     public Venta crear(VentaCreateDTO ventaDTO) {
+        com.example.demo.dto.ReglasOperativasDTO reglas = reglasOperativasService == null ? null : reglasOperativasService.obtener();
         Venta venta = new Venta();
         venta.setFecha(java.time.LocalDate.now());
         venta.setTotal(java.math.BigDecimal.ZERO);
+        venta.setEstado(Venta.Estado.CONFIRMADA);
+        venta.setMedioPago(parseMedioPago(ventaDTO.medioPago()));
+        venta.setDescuento(ventaDTO.descuento() == null ? BigDecimal.ZERO : ventaDTO.descuento());
+        if (venta.getDescuento().signum() < 0) throw new IllegalArgumentException("El descuento no puede ser negativo");
+        if (reglas != null && reglas.cajaObligatoria() && ventaDTO.cajaId() == null) throw new IllegalStateException("Debés abrir una caja antes de vender");
+        if (ventaDTO.cajaId() != null) {
+            if (cajaRepository == null) throw new IllegalStateException("Caja no disponible");
+            Caja caja = cajaRepository.findById(ventaDTO.cajaId()).orElseThrow(() -> new IllegalArgumentException("Caja inexistente"));
+            if (caja.getEstado() != Caja.Estado.ABIERTA) throw new IllegalStateException("La caja esta cerrada");
+            venta.setCaja(caja);
+        }
+        if (ventaDTO.usuarioId() != null && personaRepository != null) {
+            venta.setUsuario(personaRepository.findById(ventaDTO.usuarioId()).orElseThrow(() -> new IllegalArgumentException("Usuario inexistente")));
+        }
 
         if (ventaDTO.clienteId() != null) {
             Cliente cliente = clienteRepository.findById(ventaDTO.clienteId())
@@ -93,22 +146,59 @@ public class VentaService {
             Producto p = productoRepository.findByIdForUpdate(productoId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no existe: " + productoId));
 
-            if (p.getStock() == null || p.getStock() < itemDTO.cantidad()) {
+            boolean permitirSinStock = reglas != null && reglas.permitirVentaSinStock();
+            if (!permitirSinStock && (p.getStock() == null || p.getStock() < itemDTO.cantidad())) {
                 throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() +
                     ". Stock disponible: " + p.getStock());
             }
+            if (!permitirSinStock) validarStockVendible(p, itemDTO.cantidad());
 
             ItemVenta item = new ItemVenta();
             item.setProducto(p);
             item.setCantidad(itemDTO.cantidad());
-            item.setPrecioUnitario(p.getPrecioVenta());
+            if (itemDTO.precioManual() != null) {
+                if (reglas == null || !reglas.permitirPrecioManual())
+                    throw new IllegalStateException("El precio manual no está habilitado");
+                if (ventaDTO.usuarioId() != null && empleadoService != null
+                        && !empleadoService.tiene(ventaDTO.usuarioId(), com.example.demo.models.PermisoUsuario.Permiso.MODIFICAR_PRECIOS))
+                    throw new IllegalStateException("El usuario no tiene permiso para modificar precios");
+                item.setPrecioUnitario(itemDTO.precioManual());
+            } else {
+                item.setPrecioUnitario(precioAplicable(p, itemDTO.cantidad()));
+            }
+            item.setCostoUnitario(p.getCosto());
+            item.setUnidadVenta(p.getUnidadVenta());
             item.setVenta(venta);
+            asignarLotes(item, p, itemDTO.cantidad());
 
             p.setStock(p.getStock() - itemDTO.cantidad());
             venta.addItems(item);
+            registrarStock(p, -itemDTO.cantidad(), p.getStock() + itemDTO.cantidad(), MovimientoStock.Tipo.VENTA, null, venta.getUsuario());
         }
-
-        return ventaRepository.save(venta);
+        venta.calcularTotal();
+        if (venta.getDescuento().compareTo(venta.getTotal().add(venta.getDescuento())) > 0)
+            throw new IllegalArgumentException("El descuento no puede superar el subtotal");
+        if (reglas != null) {
+            BigDecimal bruto = venta.getTotal().add(venta.getDescuento());
+            BigDecimal maximo = bruto.multiply(reglas.descuentoMaximo()).movePointLeft(2);
+            if (venta.getDescuento().compareTo(maximo) > 0) throw new IllegalArgumentException("El descuento supera el máximo permitido");
+        }
+        if (venta.getMedioPago() == Venta.MedioPago.EFECTIVO) {
+            BigDecimal recibido = ventaDTO.montoRecibido() == null ? venta.getTotal() : ventaDTO.montoRecibido();
+            if (recibido.compareTo(venta.getTotal()) < 0) throw new IllegalArgumentException("El monto recibido no alcanza");
+            venta.setMontoRecibido(recibido); venta.setVuelto(recibido.subtract(venta.getTotal()));
+        } else { venta.setMontoRecibido(venta.getTotal()); venta.setVuelto(BigDecimal.ZERO); }
+        Venta guardada = ventaRepository.save(venta);
+        guardada.setNumeroComprobante("V-" + String.format("%08d", guardada.getId()));
+        if (guardada.getMedioPago() == Venta.MedioPago.CUENTA_CORRIENTE) {
+            if (cuentaCorrienteService == null) throw new IllegalStateException("Cuenta corriente no disponible");
+            cuentaCorrienteService.registrarVenta(guardada, ventaDTO.usuarioId());
+        }
+        if (guardada.getCaja() != null && guardada.getMedioPago() == Venta.MedioPago.EFECTIVO && movimientoCajaRepository != null) {
+            movimientoCajaRepository.save(MovimientoCaja.builder().caja(guardada.getCaja()).venta(guardada).fecha(LocalDateTime.now())
+                    .tipo(MovimientoCaja.Tipo.VENTA).monto(guardada.getTotal()).descripcion("Venta " + guardada.getNumeroComprobante()).build());
+        }
+        return guardada;
     }
 
     @Transactional
@@ -124,12 +214,16 @@ public class VentaService {
             throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() + 
                 ". Stock disponible: " + p.getStock());
         }
+        validarStockVendible(p, itemDTO.cantidad());
 
         ItemVenta nuevoItem = new ItemVenta();
         nuevoItem.setProducto(p);
         nuevoItem.setCantidad(itemDTO.cantidad());
-        nuevoItem.setPrecioUnitario(p.getPrecioVenta());
+        nuevoItem.setPrecioUnitario(precioAplicable(p, itemDTO.cantidad()));
+        nuevoItem.setCostoUnitario(p.getCosto());
+        nuevoItem.setUnidadVenta(p.getUnidadVenta());
         nuevoItem.setVenta(venta);
+        asignarLotes(nuevoItem, p, itemDTO.cantidad());
 
         p.setStock(p.getStock() - itemDTO.cantidad());
         venta.addItems(nuevoItem);
@@ -149,6 +243,7 @@ public class VentaService {
 
         Producto p = iv.getProducto();
         p.setStock(p.getStock() + iv.getCantidad());
+        restaurarLotes(iv);
         venta.removeItem(iv);
 
         return ventaRepository.save(venta);
@@ -159,11 +254,63 @@ public class VentaService {
         Venta venta = ventaRepository.findById(ventaId)
                 .orElseThrow(() -> new IllegalArgumentException("Venta no existe: " + ventaId));
 
-        for (ItemVenta iv : new ArrayList<>(venta.getItems())) {
+        if (venta.getEstado() == Venta.Estado.ANULADA) throw new IllegalStateException("La venta ya esta anulada");
+        for (ItemVenta iv : venta.getItems()) {
             Producto p = iv.getProducto();
+            int anterior = p.getStock();
             p.setStock(p.getStock() + iv.getCantidad());
-            venta.removeItem(iv);
+            restaurarLotes(iv);
+            registrarStock(p, iv.getCantidad(), anterior, MovimientoStock.Tipo.ANULACION_VENTA, "VENTA-" + ventaId, venta.getUsuario());
+        }
+        venta.setEstado(Venta.Estado.ANULADA);
+        if (venta.getCaja() != null && venta.getMedioPago() == Venta.MedioPago.EFECTIVO && movimientoCajaRepository != null) {
+            movimientoCajaRepository.save(MovimientoCaja.builder().caja(venta.getCaja()).venta(venta).fecha(LocalDateTime.now())
+                    .tipo(MovimientoCaja.Tipo.ANULACION).monto(venta.getTotal()).descripcion("Anulacion " + venta.getNumeroComprobante()).build());
         }
         return ventaRepository.save(venta);
+    }
+
+    private Venta.MedioPago parseMedioPago(String value) {
+        try { return value == null ? Venta.MedioPago.EFECTIVO : Venta.MedioPago.valueOf(value); }
+        catch (IllegalArgumentException ex) { throw new IllegalArgumentException("Medio de pago invalido"); }
+    }
+
+    private BigDecimal precioAplicable(Producto producto, int cantidad) {
+        return producto.getUnidadVenta() == Producto.UnidadVenta.UNIDAD
+                && producto.getCantidadMinimaPromo() != null && producto.getPrecioPromocional() != null
+                && cantidad >= producto.getCantidadMinimaPromo() ? producto.getPrecioPromocional() : producto.getPrecioVenta();
+    }
+
+    private void asignarLotes(ItemVenta item, Producto producto, int cantidad) {
+        if (loteProductoRepository == null) return;
+        int pendiente = cantidad;
+        for (LoteProducto lote : loteProductoRepository.disponiblesFefo(producto.getId())) {
+            if (pendiente == 0) break;
+            int usado = Math.min(pendiente, lote.getCantidadDisponible());
+            lote.setCantidadDisponible(lote.getCantidadDisponible() - usado); item.asignarLote(lote, usado); pendiente -= usado;
+        }
+    }
+
+    private void validarStockVendible(Producto producto, int cantidad) {
+        if (loteProductoRepository == null) return;
+        long trazado = loteProductoRepository.cantidadTrazada(producto.getId());
+        long vendible = loteProductoRepository.cantidadVendible(producto.getId());
+        long legado = Math.max(0, producto.getStock() - trazado);
+        if (legado + vendible < cantidad) throw new IllegalStateException("No hay stock vigente suficiente para " + producto.getNombre());
+    }
+
+    private void restaurarLotes(ItemVenta item) {
+        if (item.getLotes() == null) return;
+        item.getLotes().forEach(a -> {
+            LoteProducto lote = a.getLote(); lote.setCantidadDisponible(lote.getCantidadDisponible() + a.getCantidad()); lote.setActivo(true);
+        });
+    }
+
+    private void registrarStock(Producto producto, int cantidad, int anterior, MovimientoStock.Tipo tipo,
+                                String referencia, com.example.demo.models.Persona usuario) {
+        if (movimientoStockRepository == null) return;
+        movimientoStockRepository.save(MovimientoStock.builder().producto(producto).fecha(LocalDateTime.now()).tipo(tipo)
+                .cantidad(cantidad).stockAnterior(anterior).stockNuevo(producto.getStock()).referencia(referencia)
+                .descripcion(tipo == MovimientoStock.Tipo.VENTA ? "Salida por venta" : "Reposicion por anulacion").usuario(usuario).build());
     }
 }

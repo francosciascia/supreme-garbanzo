@@ -52,6 +52,7 @@ public class ClienteService {
                 .telefono(dto.telefono())
                 .direccion(dto.direccion())
                 .activo(dto.activo() == null ? Boolean.TRUE : dto.activo())
+                .limiteCredito(dto.limiteCredito() == null ? java.math.BigDecimal.ZERO : dto.limiteCredito())
                 .build();
 
         return ClienteMapper.toDTO(clienteRepository.save(cliente));
@@ -82,6 +83,7 @@ public class ClienteService {
         if (cambios.telefono() != null) cliente.setTelefono(cambios.telefono());
         if (cambios.direccion() != null) cliente.setDireccion(cambios.direccion());
         if (cambios.activo() != null) cliente.setActivo(cambios.activo());
+        if (cambios.limiteCredito() != null) cliente.setLimiteCredito(cambios.limiteCredito());
 
         return ClienteMapper.toDTO(clienteRepository.save(cliente));
     }

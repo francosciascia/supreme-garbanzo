@@ -43,6 +43,7 @@ buildNumber.properties
 # =========================
 logs/
 *.log
+backups/
 
 # =========================
 # Environment

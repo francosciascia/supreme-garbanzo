@@ -9,7 +9,13 @@ public record VentaDTO(
         LocalDate fecha,
         BigDecimal total,
         ClienteResumenDTO cliente,
-        List<ItemVentaDTO> items
+        List<ItemVentaDTO> items,
+        String estado,
+        String medioPago,
+        BigDecimal montoRecibido,
+        BigDecimal vuelto,
+        BigDecimal descuento,
+        String numeroComprobante
 ) {
     /**
      * Resumen mínimo del cliente embebido en una venta, para no traer

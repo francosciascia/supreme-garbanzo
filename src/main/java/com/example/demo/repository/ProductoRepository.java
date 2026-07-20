@@ -16,6 +16,7 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Optional<Producto> findByNombre(String nombre);
+    Optional<Producto> findByCodigoBarras(String codigoBarras);
     List<Producto> findByCategoria_Id(Long categoriaId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -26,7 +27,9 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             select p from Producto p
             where (:categoriaId is null or p.categoria.id = :categoriaId)
               and (:search = '' or lower(p.nombre) like lower(concat('%', :search, '%'))
-                   or lower(coalesce(p.descripcion, '')) like lower(concat('%', :search, '%')))
+                   or lower(coalesce(p.descripcion, '')) like lower(concat('%', :search, '%'))
+                   or lower(coalesce(p.codigoBarras, '')) like lower(concat('%', :search, '%'))
+                   or lower(coalesce(p.marca, '')) like lower(concat('%', :search, '%')))
             """)
     Page<Producto> buscar(@Param("search") String search, @Param("categoriaId") Long categoriaId,
                           Pageable pageable);

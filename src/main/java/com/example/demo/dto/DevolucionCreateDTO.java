@@ -1,0 +1,1 @@
+package com.example.demo.dto;import java.util.List;public record DevolucionCreateDTO(Long ventaId,String motivo,String formaReintegro,Long usuarioId,List<ItemDTO> items){public record ItemDTO(Long itemVentaId,int cantidad){}}

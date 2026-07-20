@@ -12,6 +12,7 @@ public final class UserSession {
 
     public static void login(AuthResponseDTO user) {
         VaadinSession.getCurrent().setAttribute(AuthResponseDTO.class, user);
+        VaadinSession.getCurrent().getSession().setMaxInactiveInterval(30 * 60);
     }
 
     public static void logout() {

@@ -33,6 +33,9 @@ vaadin-app-layout::part(drawer) { overflow-x: hidden; }
 .login-card { padding: 2rem; border-radius: 18px; background: white; box-shadow: 0 24px 70px #0006; }
 .login-card h1 { margin-bottom: 0; color: var(--lumo-primary-color); }
 .login-card p { margin-top: 0; color: var(--lumo-secondary-text-color); }
+.demo-credentials { width: 100%; box-sizing: border-box; margin-top: var(--lumo-space-m); padding: var(--lumo-space-m); border-radius: var(--lumo-border-radius-m); background: var(--lumo-primary-color-10pct); }
+.demo-credentials p { margin: 0 0 var(--lumo-space-xs); font-size: var(--lumo-font-size-s); }
+.demo-credentials p:first-child { font-weight: 600; color: var(--lumo-primary-text-color); }
 
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; width: 100%; }
 .metric-card { background: white; border: 1px solid var(--lumo-contrast-10pct); border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 18px #0f172a0d; }
@@ -40,6 +43,18 @@ vaadin-app-layout::part(drawer) { overflow-x: hidden; }
 .metric-card h3 { margin: .45rem 0 0; font-size: 1.65rem; }
 .pagination-bar { gap: var(--lumo-space-s); padding-top: var(--lumo-space-s); }
 .pagination-bar span { min-width: 220px; text-align: center; color: var(--lumo-secondary-text-color); }
+
+.ticket-page { align-items: center; background: white; min-height: 100vh; }
+.thermal-ticket { width: var(--ticket-width, 80mm); box-sizing: border-box; padding: 4mm; color: #000; background: #fff; font-family: "Courier New", monospace; }
+.thermal-ticket h2, .thermal-ticket h3, .thermal-ticket p { margin: 2mm 0; text-align: center; }
+.thermal-ticket p { font-size: 11px; overflow-wrap: anywhere; }
+
+@media print {
+  @page { size: var(--ticket-width, 80mm) auto; margin: 0; }
+  html, body, .ticket-page { width: var(--ticket-width, 80mm); margin: 0; padding: 0; background: #fff; }
+  .thermal-ticket { width: 100%; padding: 3mm; }
+  .no-print { display: none !important; }
+}
 
 @media (max-width: 700px) {
   .content-view { padding: var(--lumo-space-m); }

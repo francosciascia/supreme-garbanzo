@@ -5,6 +5,8 @@ import com.example.demo.models.Venta;
 import com.example.demo.services.ClienteService;
 import com.example.demo.services.ProductoService;
 import com.example.demo.services.VentaService;
+import com.example.demo.services.LoteService;
+import com.example.demo.services.ReglasOperativasService;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -24,19 +26,22 @@ import java.util.Locale;
 public class DashboardView extends VerticalLayout {
     private static final NumberFormat CURRENCY = NumberFormat.getCurrencyInstance(Locale.of("es", "AR"));
 
-    public DashboardView(ProductoService productoService, ClienteService clienteService, VentaService ventaService) {
+    public DashboardView(ProductoService productoService, ClienteService clienteService, VentaService ventaService,
+                         LoteService loteService, ReglasOperativasService reglasService) {
         addClassName("content-view");
         setSizeFull();
         List<ProductoDTO> products = productoService.listar();
         List<Venta> sales = ventaService.listar();
-        long lowStock = products.stream().filter(product -> product.stock() != null && product.stock() < 10).count();
-        BigDecimal revenue = sales.stream().map(Venta::getTotal).filter(total -> total != null)
+        long lowStock = products.stream().filter(product -> product.stock() != null && product.stock() <= product.stockMinimo()).count();
+        BigDecimal revenue = sales.stream().filter(sale -> sale.getEstado() != Venta.Estado.ANULADA).map(Venta::getTotal).filter(total -> total != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int expirationDays = reglasService.obtener().diasAlertaVencimiento();
 
         Div cards = new Div();
         cards.addClassName("metric-grid");
         cards.add(metric("Productos", products.size()), metric("Ventas", sales.size()),
                 metric("Ingresos", CURRENCY.format(revenue)), metric("Stock bajo", lowStock),
+                metric("Vencen en " + expirationDays + " días", loteService.proximosAVencer(expirationDays).size()),
                 metric("Clientes", clienteService.listar().size()));
 
         Grid<ProductoDTO> stockGrid = new Grid<>(ProductoDTO.class, false);
@@ -44,7 +49,7 @@ public class DashboardView extends VerticalLayout {
         stockGrid.addColumn(ProductoDTO::stock).setHeader("Stock");
         stockGrid.addColumn(product -> product.categoria() == null ? "Sin categoría" : product.categoria().nombre())
                 .setHeader("Categoría").setAutoWidth(true);
-        stockGrid.setItems(products.stream().filter(product -> product.stock() != null && product.stock() < 10).toList());
+        stockGrid.setItems(products.stream().filter(product -> product.stock() != null && product.stock() <= product.stockMinimo()).toList());
         stockGrid.setHeight("280px");
         add(new H2("Resumen general"), cards, new H3("Productos con stock bajo"), stockGrid);
     }

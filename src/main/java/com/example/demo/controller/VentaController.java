@@ -111,4 +111,9 @@ public class VentaController {
         ventaService.quitarItem(ventaId, itemId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/anular")
+    public VentaDTO anular(@PathVariable Long id) {
+        return VentaMapper.toDTO(ventaService.anular(id));
+    }
 }

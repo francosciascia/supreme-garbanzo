@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -25,19 +26,33 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Transactional
+    @Transactional(noRollbackFor = UnauthorizedException.class)
     public AuthResponseDTO login(LoginDTO loginDTO) {
         // Evitamos filtrar si el usuario existe o no: mismo mensaje genérico.
         Persona usuario = personaRepository.findByEmail(loginDTO.email())
                 .orElseThrow(() -> new UnauthorizedException("Credenciales inválidas"));
+
+        if (usuario.getBloqueadoHasta() != null && usuario.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
+            throw new UnauthorizedException("Usuario bloqueado temporalmente. Intentá más tarde");
+        }
 
         if (!usuario.isActivo()) {
             throw new UnauthorizedException("El usuario está inactivo");
         }
 
         if (!passwordEncoder.matches(loginDTO.contraseña(), usuario.getContraseña())) {
+            usuario.setIntentosFallidos(usuario.getIntentosFallidos() + 1);
+            if (usuario.getIntentosFallidos() >= 5) {
+                usuario.setBloqueadoHasta(LocalDateTime.now().plusMinutes(15));
+                usuario.setIntentosFallidos(0);
+            }
+            personaRepository.save(usuario);
             throw new UnauthorizedException("Credenciales inválidas");
         }
+
+        usuario.setIntentosFallidos(0);
+        usuario.setBloqueadoHasta(null);
+        usuario.setUltimoAcceso(LocalDateTime.now());
 
         String token = tokenProvider.generateToken(usuario);
         return AuthResponseDTO.from(token, usuario);

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -17,13 +18,15 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 @Route("login")
 @PageTitle("Iniciar sesión | Franco")
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     private final AuthService authService;
 
-    public LoginView(AuthService authService) {
+    public LoginView(AuthService authService, Environment environment) {
         this.authService = authService;
         addClassName("login-view");
         setSizeFull();
@@ -45,6 +48,15 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         submit.addClickListener(event -> login(email.getValue(), password.getValue(), submit));
         password.addKeyPressListener(Key.ENTER, event -> login(email.getValue(), password.getValue(), submit));
         card.add(title, subtitle, email, password, submit);
+        if (environment.acceptsProfiles(Profiles.of("dev"))) {
+            Div demoCredentials = new Div();
+            demoCredentials.addClassName("demo-credentials");
+            demoCredentials.add(new Paragraph("Cuentas de demostración · contraseña: 123456"),
+                    new Paragraph("Cajero: usuario@demo.com"),
+                    new Paragraph("Encargado: admin@demo.com"),
+                    new Paragraph("Dueño: superadmin@demo.com"));
+            card.add(demoCredentials);
+        }
         add(card);
     }
 

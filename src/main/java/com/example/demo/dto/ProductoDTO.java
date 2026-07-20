@@ -1,6 +1,7 @@
 package com.example.demo.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public record ProductoDTO(
         Long id,
@@ -10,5 +11,12 @@ public record ProductoDTO(
         Boolean vencimiento,
         BigDecimal costo,
         BigDecimal precioVenta,
-        CategoriaDTO categoria
+        CategoriaDTO categoria,
+        String codigoBarras,
+        String marca,
+        Integer stockMinimo,
+        String unidadVenta,
+        LocalDate fechaVencimiento,
+        Integer cantidadMinimaPromo,
+        BigDecimal precioPromocional
 ) {}
