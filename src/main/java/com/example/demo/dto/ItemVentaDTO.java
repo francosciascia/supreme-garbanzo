@@ -7,6 +7,8 @@ public record ItemVentaDTO(
         Long productoId,
         String nombreProducto,
         Integer cantidad,
+        BigDecimal cantidadMostrada,
+        String unidadVenta,
         BigDecimal precioUnitario,
         BigDecimal subtotal
 ) {}

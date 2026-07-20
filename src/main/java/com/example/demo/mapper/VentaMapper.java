@@ -25,7 +25,13 @@ public final class VentaMapper {
                 venta.getFecha(),
                 venta.getTotal(),
                 clienteResumen(venta.getCliente()),
-                items
+                items,
+                venta.getEstado().name(),
+                venta.getMedioPago().name(),
+                venta.getMontoRecibido(),
+                venta.getVuelto(),
+                venta.getDescuento(),
+                venta.getNumeroComprobante()
         );
     }
 
@@ -35,6 +41,10 @@ public final class VentaMapper {
                 item.getProducto() != null ? item.getProducto().getId() : null,
                 item.getProducto() != null ? item.getProducto().getNombre() : null,
                 item.getCantidad(),
+                item.getUnidadVenta() == com.example.demo.models.Producto.UnidadVenta.PESO
+                        ? java.math.BigDecimal.valueOf(item.getCantidad()).movePointLeft(3)
+                        : java.math.BigDecimal.valueOf(item.getCantidad()),
+                item.getUnidadVenta().name(),
                 item.getPrecioUnitario(),
                 item.getSubtotal()
         );

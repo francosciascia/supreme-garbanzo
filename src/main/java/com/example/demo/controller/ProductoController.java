@@ -17,6 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
 /**
  * Controller para gestionar productos
@@ -46,6 +50,15 @@ public class ProductoController {
             return productoService.listarPorCategoria(categoriaId);
         }
         return productoService.listar();
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "Buscar productos paginados")
+    public Page<ProductoDTO> buscar(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoriaId,
+            @PageableDefault(size = 20, sort = "nombre", direction = Sort.Direction.ASC) Pageable pageable) {
+        return productoService.buscar(search, categoriaId, pageable);
     }
 
     /**

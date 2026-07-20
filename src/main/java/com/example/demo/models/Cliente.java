@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 /**
  * Cliente del comercio (comprador). Es una entidad independiente de Persona,
@@ -59,6 +60,14 @@ public class Cliente {
     @Column(nullable = false)
     @Builder.Default
     private boolean activo = true;
+
+    @Column(name = "saldo_cuenta", nullable = false, precision = 14, scale = 2)
+    @Builder.Default
+    private BigDecimal saldoCuenta = BigDecimal.ZERO;
+
+    @Column(name = "limite_credito", nullable = false, precision = 14, scale = 2)
+    @Builder.Default
+    private BigDecimal limiteCredito = BigDecimal.ZERO;
 
     @PrePersist
     public void prePersist() {

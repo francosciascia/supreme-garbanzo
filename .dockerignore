@@ -1,0 +1,8 @@
+.git
+.idea
+.vs
+.agents
+target
+node_modules
+frontend/generated
+*.log

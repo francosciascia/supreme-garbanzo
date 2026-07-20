@@ -1,0 +1,1 @@
+package com.example.demo.dto;import java.math.BigDecimal;import java.time.LocalDate;public record LoteProductoDTO(Long id,Long productoId,String producto,String codigoLote,LocalDate fechaIngreso,LocalDate fechaVencimiento,Integer cantidadInicial,Integer cantidadDisponible,BigDecimal costoUnitario,String estado){}

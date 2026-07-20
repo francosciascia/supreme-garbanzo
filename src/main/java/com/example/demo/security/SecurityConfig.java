@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -23,8 +24,17 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${app.cors.allowed-origin:http://localhost:8083}")
+    private String allowedOrigin;
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private ApiAuthenticationEntryPoint authenticationEntryPoint;
+
+    @Autowired
+    private ApiAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,11 +52,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authz -> authz
 
                         // Archivos públicos
-                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
-                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/assets/**").permitAll()
+                        .requestMatchers("/", "/login", "/productos", "/categorias", "/clientes", "/ventas", "/caja", "/compras", "/proveedores", "/inventario", "/lotes", "/devoluciones", "/reportes", "/usuarios", "/empleados", "/reglas", "/auditoria", "/configuracion", "/ticket/**",
+                                "/favicon.ico", "/VAADIN/**", "/frontend/**", "/webjars/**", "/icons/**",
+                                "/images/**", "/manifest.webmanifest", "/sw.js", "/offline.html").permitAll()
 
                         // Auth pública
                         .requestMatchers("/api/auth/**").permitAll()
@@ -139,6 +153,18 @@ public class SecurityConfig {
                                 "/api/ventas/**"
                         ).hasRole("SUPER_ADMIN")
 
+                        .requestMatchers("/api/cajas/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/proveedores/**", "/api/compras/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/proveedores/**", "/api/compras/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/inventario/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/ventas/*/anular").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/usuarios/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/configuracion/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/reglas/**", "/api/empleados/**", "/api/auditoria/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/devoluciones/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/cuentas-corrientes/**").authenticated()
+                        .requestMatchers("/api/lotes/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
                         // Swagger
                         .requestMatchers(
                                 "/swagger-ui.html",
@@ -156,7 +182,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigin.split(",")).map(String::trim).toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(false);

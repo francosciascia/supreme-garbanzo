@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 
 public record ClienteCUDTO(
 
@@ -27,8 +28,11 @@ public record ClienteCUDTO(
         @Size(max = 200, message = "La dirección no debe exceder 200 caracteres")
         String direccion,
 
-        Boolean activo
+        Boolean activo,
+        BigDecimal limiteCredito
 ) 
 {
-        
+    public ClienteCUDTO(String nombre,String apellido,Integer dni,String email,String telefono,String direccion,Boolean activo){
+        this(nombre,apellido,dni,email,telefono,direccion,activo,null);
+    }
 }

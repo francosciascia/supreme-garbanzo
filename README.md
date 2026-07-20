@@ -1,224 +1,145 @@
-📊 Sistema de Gestión Comercial
+# Franco — Sistema de gestión comercial
+
+Aplicación monolítica construida con Java 21, Spring Boot 3.5 y Vaadin Flow. Permite administrar productos, categorías, clientes y ventas con control de stock, autenticación JWT y permisos por rol.
+
+## Funcionalidades
+
+- Dashboard con métricas de productos, ventas, ingresos, clientes y stock bajo.
+- CRUD de productos, categorías y clientes.
+- Registro de ventas con múltiples ítems y actualización atómica de stock.
+- Punto de venta con lector de códigos de barras, promociones por cantidad, descuentos, medios de pago y cálculo de vuelto.
+- Apertura y cierre de caja, ingresos, retiros y control de diferencias por turno.
+- Proveedores y compras con reposición automática de stock.
+- Historial de movimientos y ajustes manuales de inventario.
+- Anulación trazable de ventas y compras con reversión de stock.
+- Tickets imprimibles, reportes de rentabilidad, inventario valorizado y productos más vendidos.
+- Gestión de usuarios con perfiles Cajero, Encargado y Dueño.
+- Ficha de empleados con legajo, puesto, datos laborales y permisos operativos individuales.
+- Reglas configurables por el dueño: caja obligatoria, venta sin stock, descuento máximo, fiado y límites de crédito.
+- Cuenta corriente por cliente, historial de deuda, cobros y saldo a favor.
+- Devoluciones parciales con reposición de stock y lotes, reintegro en caja o crédito al cliente.
+- Registro de auditoría de operaciones sensibles.
+- Lotes con consumo FEFO, alertas de vencimiento y bloqueo de mercadería vencida.
+- Venta por peso con precisión de gramos y precios expresados por kilogramo.
+- Configuración del comercio y tickets térmicos de 58/80 mm.
+- Costo histórico por venta, exportación CSV y bloqueo temporal por intentos fallidos.
+- Filtros, ordenamiento y paginación en Vaadin.
+- Endpoints paginados para productos y ventas.
+- Roles `USUARIO`, `ADMIN` y `SUPER_ADMIN`.
+- Respuestas de error uniformes y validación global.
+- Migraciones de base de datos con Flyway.
+- Entorno reproducible con Docker Compose.
 
-Proyecto desarrollado en Java + Spring Boot, con el objetivo de aprender Spring Boot, mejorar la calidad de código y trabajar con bases de datos.
-Permite administrar productos, registrar ventas, controlar stock y calcular resultados básicos de la actividad comercial.
+## Estructura
 
-**¡Ahora incluye interfaz web completa!** 🎉
+```text
+src/main/java/com/example/demo/
+├── config/       Configuración y datos iniciales
+├── controller/   API REST
+├── dto/          Contratos de entrada y salida
+├── exceptions/   Excepciones y manejo global
+├── mapper/       Conversión entidad/DTO
+├── models/       Entidades JPA
+├── repository/   Repositorios Spring Data
+├── security/     JWT, filtros y autorización
+├── services/     Casos de uso y transacciones
+└── ui/           Vistas Vaadin Flow
 
-📌 Funcionalidades
+src/main/resources/
+├── application.properties
+└── db/migration/ Migraciones Flyway
+```
 
-📦 Gestión de productos
+## Ejecución local
 
-Crear, editar, listar y obtener productos.
+Requisitos: Java 21, PostgreSQL y Docker opcional.
 
-Validaciones de stock, costo y precio de venta.
+La configuración predeterminada usa PostgreSQL en `localhost:5432`, base `postgres`, usuario `postgres` y contraseña `1234`. Puede reemplazarse con variables de entorno:
 
-🧾 Gestión de ventas
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/postgres"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "1234"
+$env:JWT_SECRET = "una-clave-segura-de-al-menos-32-caracteres"
+./mvnw.cmd spring-boot:run
+```
 
-Crear ventas con múltiples ítems.
+Aplicación: <http://localhost:8083>
 
-Cálculo automático de totales y subtotales.
+Swagger: <http://localhost:8083/swagger-ui.html>
 
-Asociación de productos a ítems de venta.
+## Docker Compose
 
-✅ DTOs para separar entidades de la API (últimos cambios incorporados).
+```bash
+docker compose up --build
+```
 
-⚙️ Uso de Lombok para simplificar el código (getters, setters, constructores, builder).
+Esto inicia PostgreSQL y la aplicación. Para producción, definí `JWT_SECRET` fuera del repositorio.
 
-🗄️ Persistencia con Spring Data JPA y base de datos relacional.
+En producción también definí `SPRING_PROFILES_ACTIVE=prod`. Los usuarios y datos de demostración sólo se cargan con el perfil `dev`.
 
-🌐 **Interfaz Web Completa**
+## Operación del kiosco
 
-Dashboard con estadísticas en tiempo real.
+1. El cajero abre su turno desde **Caja** e indica el efectivo inicial.
+2. Registra ventas desde **Punto de venta**, buscando o escaneando el código de barras.
+3. El encargado registra entregas desde **Compras**; el stock se actualiza automáticamente.
+4. Las diferencias físicas se registran desde **Inventario** y quedan auditadas.
+5. Al finalizar el turno, el cajero cuenta el efectivo y cierra la caja.
 
-Gestión visual de productos (CRUD completo).
+El Dueño define el comportamiento general desde **Reglas del negocio** y asigna accesos desde **Empleados**. La personalización visual y las integraciones específicas de cada rubro quedan separadas de estas reglas operativas, por lo que la misma base puede adaptarse sin bifurcar la lógica central.
 
-Sistema de ventas con interfaz intuitiva.
+Los roles técnicos se conservan por compatibilidad: `USUARIO` representa al Cajero, `ADMIN` al Encargado y `SUPER_ADMIN` al Dueño.
 
-Notificaciones y feedback visual.
+Para productos vendidos por peso, el operador carga y vende kilogramos (hasta tres decimales). Internamente el stock se conserva en gramos para mantener exactitud y compatibilidad con el inventario existente.
 
-Diseño responsive (mobile-first).
+## Backups
 
-🛠️ Tecnologías
+Con Docker Compose en ejecución:
 
-Java 17+
+```powershell
+./scripts/backup.ps1
+./scripts/restore.ps1 -BackupFile ./backups/franco-AAAAMMDD-HHMMSS.sql
+```
 
-Spring Boot
+La restauración exige confirmación explícita y sólo acepta archivos ubicados dentro del proyecto. En producción se recomienda programar `backup.ps1` diariamente y copiar los resultados a otro equipo o almacenamiento externo.
 
-Spring Data JPA
+## Facturación fiscal
 
-Hibernate
+Los tickets actuales son comprobantes comerciales no fiscales. La emisión de comprobantes con CAE debe integrarse con ARCA utilizando el certificado, clave privada, CUIT y punto de venta reales del comercio; esos secretos no deben almacenarse en el repositorio.
 
-Lombok
+## Seguridad
 
-Maven
+El login se realiza mediante `POST /api/auth/login`. Para endpoints protegidos, enviar:
 
-Base de datos relacional (ej: MySQL, PostgreSQL o H2 para pruebas).
+```http
+Authorization: Bearer <token>
+```
 
-**Frontend: HTML5, CSS3, JavaScript (Vanilla)**
+Permisos principales:
 
-▶️ Cómo correr el proyecto
+| Recurso | Lectura | Crear/editar | Eliminar |
+|---|---|---|---|
+| Productos y categorías | Público | ADMIN, SUPER_ADMIN | SUPER_ADMIN |
+| Clientes | Autenticado | ADMIN, SUPER_ADMIN | SUPER_ADMIN |
+| Ventas | Autenticado | Autenticado | SUPER_ADMIN |
 
-Cloná el repo:
+## Paginación y filtros
 
-git clone https://github.com/francosciascia/supreme-garbanzo.git
-cd supreme-garbanzo
+```text
+GET /api/productos/page?search=leche&categoriaId=3&page=0&size=20&sort=nombre,asc
+GET /api/ventas/page?clienteId=1&desde=2026-01-01&hasta=2026-12-31&page=0&size=20
+```
 
+Los endpoints históricos sin paginación se mantienen por compatibilidad.
 
-Compilá y corré con Maven/IntelliJ:
+## Base de datos
 
-mvn spring-boot:run
+Flyway administra el esquema desde `V1__initial_schema.sql`. Hibernate usa `ddl-auto=validate`, por lo que detecta diferencias sin modificar tablas automáticamente. `baseline-on-migrate` permite incorporar una base preexistente.
 
+## Pruebas
 
-La API quedará levantada en:
+```powershell
+./mvnw.cmd test
+```
 
-http://localhost:8080
-
-**🌐 Interfaz Web**
-
-Accede a la interfaz web completa en:
-
-http://localhost:8080
-
-**📚 Documentación API**
-
-Documentación interactiva con Swagger:
-
-http://localhost:8080/swagger-ui.html
-
-Especificación OpenAPI:
-
-http://localhost:8080/v3/api-docs
-
-📂 Endpoints principales
-Productos
-
-POST /api/productos → crear producto.
-
-PUT /api/productos/{id} → editar producto.
-
-GET /api/productos → listar todos.
-
-GET /api/productos/{id} → obtener por ID.
-
-Ventas
-
-POST /api/ventas → crear venta (con lista de ítems).
-
-GET /api/ventas/{id} → detalle de venta.
-
-📑 Ejemplos de uso en Postman
-🔹 Crear un producto
-
-Request
-
-POST /api/productos
-Content-Type: application/json
-
-{
-  "nombre": "Pepsi 2L",
-  "descripcion": "Gaseosa cola",
-  "stock": 100,
-  "vencimiento": false,
-  "costo": 60.00,
-  "precioVenta": 120.00
-}
-
-
-Response
-
-{
-  "id": 1,
-  "nombre": "Pepsi 2L",
-  "descripcion": "Gaseosa cola",
-  "stock": 100,
-  "vencimiento": false,
-  "precioVenta": 120.00
-}
-
-🔹 Listar productos
-
-Request
-
-GET /api/productos
-
-
-Response
-
-[
-  {
-    "id": 1,
-    "nombre": "Pepsi 2L",
-    "descripcion": "Gaseosa cola",
-    "stock": 100,
-    "vencimiento": false,
-    "precioVenta": 120.00
-  },
-  {
-    "id": 2,
-    "nombre": "Sprite 1.5L",
-    "descripcion": "Gaseosa lima-limón",
-    "stock": 50,
-    "vencimiento": false,
-    "precioVenta": 90.00
-  }
-]
-
-🔹 Crear una venta
-
-Request
-
-POST /api/ventas
-Content-Type: application/json
-
-{
-  "items": [
-    { "productoId": 1, "cantidad": 2 },
-    { "productoId": 2, "cantidad": 1 }
-  ]
-}
-
-
-Response
-
-{
-  "id": 10,
-  "fecha": "2025-09-08",
-  "total": 330.00,
-  "items": [
-    {
-      "productoId": 1,
-      "nombreProducto": "Pepsi 2L",
-      "cantidad": 2,
-      "precioUnitario": 120.00,
-      "subtotal": 240.00
-    },
-    {
-      "productoId": 2,
-      "nombreProducto": "Sprite 1.5L",
-      "cantidad": 1,
-      "precioUnitario": 90.00,
-      "subtotal": 90.00
-    }
-  ]
-}
-
-🚀 Próximos pasos
-
-✅ **Interfaz web completa implementada** (HTML/CSS/JS puro)
-
-Agregar seguridad (Spring Security, JWT).
-
-Implementar reportes de ventas avanzados.
-
-Optimizar consultas con @EntityGraph.
-
-Añadir más estadísticas al dashboard.
-
-Implementar notificaciones en tiempo real.
-
-Agregar funcionalidad de empleados/administradores.
-
-👨‍💻 Autor
-
-Proyecto personal de Franco Sciascia, como práctica de backend con Java, Spring Boot y bases de datos relacionales, buscando mejorar la calidad de código y ahora con interfaz web completa.
+La suite cubre ventas, stock, productos, caja, lotes, cuenta corriente, reglas operativas, validaciones de negocio y generación/validación JWT.

@@ -1,0 +1,1 @@
+package com.example.demo.dto;import java.math.BigDecimal;import java.time.LocalDate;import java.util.Set;public record EmpleadoDTO(Long usuarioId,String nombre,String apellido,String email,String rol,boolean activo,String legajo,String puesto,LocalDate fechaContratacion,BigDecimal sueldo,String telefonoEmergencia,String observaciones,Set<String> permisos){}

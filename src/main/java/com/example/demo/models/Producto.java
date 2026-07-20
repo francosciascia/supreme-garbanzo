@@ -9,6 +9,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -30,13 +31,29 @@ public class Producto {
 
     private String descripcion;
 
-    @Min(0)
+    @Column(name = "codigo_barras", unique = true, length = 64)
+    private String codigoBarras;
+
+    private String marca;
+
     @NotNull
     @Column(nullable = false)
     private Integer stock;
 
+    @Column(name = "stock_minimo", nullable = false)
+    @Builder.Default
+    private Integer stockMinimo = 5;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unidad_venta", nullable = false)
+    @Builder.Default
+    private UnidadVenta unidadVenta = UnidadVenta.UNIDAD;
+
     @Column(nullable = false)
     private boolean vencimiento;
+
+    @Column(name = "fecha_vencimiento")
+    private LocalDate fechaVencimiento;
 
     @PositiveOrZero
     @Column(nullable = false, precision = 14, scale = 2)
@@ -46,7 +63,15 @@ public class Producto {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal precioVenta;
 
+    @Column(name = "cantidad_minima_promo")
+    private Integer cantidadMinimaPromo;
+
+    @Column(name = "precio_promocional", precision = 14, scale = 2)
+    private BigDecimal precioPromocional;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
+
+    public enum UnidadVenta { UNIDAD, PESO }
 }

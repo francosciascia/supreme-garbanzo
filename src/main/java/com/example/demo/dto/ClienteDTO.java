@@ -1,6 +1,7 @@
 package com.example.demo.dto;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public record ClienteDTO(
         Long id,
@@ -11,5 +12,7 @@ public record ClienteDTO(
         String telefono,
         String direccion,
         LocalDate fechaRegistro,
-        boolean activo
+        boolean activo,
+        BigDecimal saldoCuenta,
+        BigDecimal limiteCredito
 ) {}

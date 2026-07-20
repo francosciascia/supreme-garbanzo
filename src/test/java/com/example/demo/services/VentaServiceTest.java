@@ -6,6 +6,7 @@ import com.example.demo.models.ItemVenta;
 import com.example.demo.models.Producto;
 import com.example.demo.models.Venta;
 import com.example.demo.repository.ProductoRepository;
+import com.example.demo.repository.ClienteRepository;
 import com.example.demo.repository.VentaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class VentaServiceTest {
 
     @Mock
     private ProductoRepository productoRepository;
+
+    @Mock
+    private ClienteRepository clienteRepository;
 
     @InjectMocks
     private VentaService ventaService;
@@ -124,7 +128,7 @@ class VentaServiceTest {
         ventaPersistida.setItems(new ArrayList<>());
         ventaPersistida.setTotal(BigDecimal.ZERO);
 
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(productoMock));
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(productoMock));
         when(ventaRepository.save(any(Venta.class))).thenReturn(ventaPersistida);
 
         // Act
@@ -133,7 +137,7 @@ class VentaServiceTest {
         // Assert
         assertNotNull(resultado);
         assertEquals(1L, resultado.getId());
-        verify(productoRepository, times(1)).findById(1L);
+        verify(productoRepository, times(1)).findByIdForUpdate(1L);
         verify(ventaRepository, times(1)).save(any(Venta.class));
     }
 
@@ -149,7 +153,7 @@ class VentaServiceTest {
                 .precioVenta(new BigDecimal("800.00"))
                 .build();
 
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(productoSinStock));
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(productoSinStock));
 
         // Act & Assert
         assertThrows(IllegalStateException.class, () -> {
@@ -163,7 +167,7 @@ class VentaServiceTest {
     @DisplayName("Debería fallar al crear venta con producto inexistente")
     void testCrearVentaProductoNoExistente() {
         // Arrange
-        when(productoRepository.findById(999L)).thenReturn(Optional.empty());
+        when(productoRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         VentaCreateDTO ventaConProductoInvalido = new VentaCreateDTO(
                 null,
@@ -183,7 +187,7 @@ class VentaServiceTest {
     void testAgregarItem() {
         // Arrange
         when(ventaRepository.findById(1L)).thenReturn(Optional.of(ventaMock));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(productoMock));
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(productoMock));
         when(ventaRepository.save(any(Venta.class))).thenReturn(ventaMock);
 
         ItemVentaCreateDTO itemDTO = new ItemVentaCreateDTO(1L, 2);
@@ -194,7 +198,7 @@ class VentaServiceTest {
         // Assert
         assertNotNull(resultado);
         verify(ventaRepository, times(1)).findById(1L);
-        verify(productoRepository, times(1)).findById(1L);
+        verify(productoRepository, times(1)).findByIdForUpdate(1L);
         verify(ventaRepository, times(1)).save(any(Venta.class));
     }
 
@@ -227,7 +231,7 @@ class VentaServiceTest {
                 .build();
 
         when(ventaRepository.findById(1L)).thenReturn(Optional.of(ventaMock));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(productoSinStock));
+        when(productoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(productoSinStock));
 
         ItemVentaCreateDTO itemDTO = new ItemVentaCreateDTO(1L, 5);
 
