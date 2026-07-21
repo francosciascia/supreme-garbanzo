@@ -9,7 +9,12 @@ html, body { background: var(--lumo-shade-5pct); }
 
 .content-view { padding: var(--lumo-space-l); }
 
-.brand { margin: var(--lumo-space-m); color: var(--lumo-primary-color); }
+.brand {
+  margin: calc(var(--lumo-space-m) * 0.65);
+  color: var(--lumo-primary-color);
+  font-size: calc(var(--lumo-font-size-xxxl) * 0.65);
+  line-height: 1.2;
+}
 
 .nav-link {
   display: flex;
@@ -17,15 +22,61 @@ html, body { background: var(--lumo-shade-5pct); }
   gap: var(--lumo-space-s);
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
   padding: var(--lumo-space-s) var(--lumo-space-m);
   color: var(--lumo-secondary-text-color);
   border-radius: var(--lumo-border-radius-m);
   text-decoration: none;
 }
 
+.nav-link vaadin-icon {
+  width: var(--lumo-icon-size-m);
+  height: var(--lumo-icon-size-m);
+  flex: 0 0 auto;
+}
+
 vaadin-app-layout::part(drawer) { overflow-x: hidden; }
 
 .nav-link:hover, .nav-link[highlight] { background: var(--lumo-primary-color-10pct); color: var(--lumo-primary-text-color); }
+
+.nav-group {
+  align-self: stretch;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-group-summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-group-chevron {
+  --vaadin-icon-size: 14px;
+  margin-inline-start: auto;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: transform 0.15s ease;
+}
+
+.nav-group.opened .nav-group-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-submenu {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.nav-submenu .nav-link {
+  padding-inline-start: calc(var(--lumo-space-m) + var(--lumo-icon-size-m) + var(--lumo-space-s));
+}
 .drawer-footer { border-top: 1px solid var(--lumo-contrast-10pct); }
 .user-identity { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
 

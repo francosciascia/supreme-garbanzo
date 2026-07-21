@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -17,11 +18,20 @@ import com.example.demo.models.PermisoUsuario.Permiso;
 import com.example.demo.services.EmpleadoService;
 import com.example.demo.services.ConfiguracionComercioService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class MainLayout extends AppLayout implements BeforeEnterObserver {
+    private static final Set<String> PERSONAS_ROUTES = Set.of("clientes", "proveedores", "usuarios");
+    private static final Set<String> STOCK_ROUTES = Set.of("compras", "inventario", "lotes");
+    private static final Set<String> CONFIG_ROUTES = Set.of("configuracion", "reglas");
+
     private final H2 pageTitle = new H2();
     private final Set<Permiso> permisos;
+    private final NavGroup personasNav;
+    private final NavGroup stockNav;
+    private final NavGroup configNav;
 
     public MainLayout(EmpleadoService empleadoService, ConfiguracionComercioService configuracionService) {
         var usuarioActual = UserSession.getUser();
@@ -43,29 +53,24 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         addToNavbar(new DrawerToggle(), pageTitle, theme);
         H1 brand = new H1(configuracion.nombre());
         brand.addClassName("brand");
+        personasNav = personasGroup();
+        stockNav = stockGroup();
+        configNav = UserSession.isSuperAdmin() ? configGroup() : null;
         VerticalLayout navigation = new VerticalLayout(
-                link("Dashboard", VaadinIcon.DASHBOARD, DashboardView.class),
                 link("Productos", VaadinIcon.PACKAGE, ProductosView.class),
                 link("Categorías", VaadinIcon.TAGS, CategoriasView.class),
-                link("Clientes", VaadinIcon.USERS, ClientesView.class),
+                personasNav,
                 link("Punto de venta", VaadinIcon.CART, VentasView.class),
                 link("Caja", VaadinIcon.CASH, CajaView.class));
-        if (UserSession.isAdmin() || can(Permiso.REGISTRAR_COMPRAS)) {
-            navigation.add(link("Proveedores", VaadinIcon.TRUCK, ProveedoresView.class),
-                    link("Compras", VaadinIcon.STOCK, ComprasView.class));
-        }
-        if (UserSession.isAdmin() || can(Permiso.AJUSTAR_STOCK)) navigation.add(
-                link("Inventario", VaadinIcon.CLIPBOARD_TEXT, InventarioView.class),
-                link("Lotes", VaadinIcon.ARCHIVES, LotesView.class));
+        if (stockNav != null) navigation.add(stockNav);
         if (UserSession.isAdmin() || can(Permiso.REALIZAR_DEVOLUCIONES))
             navigation.add(link("Devoluciones", VaadinIcon.ROTATE_LEFT, DevolucionesView.class));
         if (UserSession.isAdmin() || can(Permiso.VER_REPORTES))
             navigation.add(link("Reportes", VaadinIcon.CHART, ReportesView.class));
-        if (UserSession.isSuperAdmin()) navigation.add(
-                link("Usuarios", VaadinIcon.USER, UsuariosView.class),
-                link("Reglas del negocio", VaadinIcon.SLIDERS, ReglasOperativasView.class),
-                link("Auditoría", VaadinIcon.SEARCH, AuditoriaView.class),
-                link("Configuración", VaadinIcon.COG, ConfiguracionView.class));
+        if (UserSession.isSuperAdmin()) {
+            navigation.add(link("Auditoría", VaadinIcon.SEARCH, AuditoriaView.class));
+            navigation.add(configNav);
+        }
         navigation.setPadding(false);
         var user = UserSession.getUser();
         Span identity = new Span(user == null ? "" : user.nombre() + " " + user.apellido() + " · " + user.rol());
@@ -81,6 +86,37 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         drawer.setSizeFull();
         drawer.expand(navigation);
         addToDrawer(drawer);
+    }
+
+    private NavGroup personasGroup() {
+        List<Component> items = new ArrayList<>();
+        items.add(link("Clientes", VaadinIcon.USERS, ClientesView.class));
+        if (UserSession.isAdmin() || can(Permiso.REGISTRAR_COMPRAS))
+            items.add(link("Proveedores", VaadinIcon.TRUCK, ProveedoresView.class));
+        if (UserSession.isSuperAdmin())
+            items.add(link("Usuarios", VaadinIcon.USER, UsuariosView.class));
+        return navGroup("Personas", VaadinIcon.GROUP, items);
+    }
+
+    private NavGroup stockGroup() {
+        List<Component> items = new ArrayList<>();
+        if (UserSession.isAdmin() || can(Permiso.REGISTRAR_COMPRAS))
+            items.add(link("Compras", VaadinIcon.STOCK, ComprasView.class));
+        if (UserSession.isAdmin() || can(Permiso.AJUSTAR_STOCK)) {
+            items.add(link("Inventario", VaadinIcon.CLIPBOARD_TEXT, InventarioView.class));
+            items.add(link("Lotes", VaadinIcon.ARCHIVES, LotesView.class));
+        }
+        return items.isEmpty() ? null : navGroup("Stock", VaadinIcon.STORAGE, items);
+    }
+
+    private NavGroup configGroup() {
+        return navGroup("Configuración", VaadinIcon.COG, List.of(
+                link("Comercio", VaadinIcon.SHOP, ConfiguracionView.class),
+                link("Reglas del negocio", VaadinIcon.SLIDERS, ReglasOperativasView.class)));
+    }
+
+    private NavGroup navGroup(String label, VaadinIcon icon, List<Component> items) {
+        return new NavGroup(label, icon, items);
     }
 
     private RouterLink link(String label, VaadinIcon icon, Class<? extends Component> view) {
@@ -102,6 +138,9 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
             event.rerouteTo(DashboardView.class);
             return;
         }
+        if (PERSONAS_ROUTES.contains(path)) personasNav.setOpened(true);
+        if (stockNav != null && STOCK_ROUTES.contains(path)) stockNav.setOpened(true);
+        if (configNav != null && CONFIG_ROUTES.contains(path)) configNav.setOpened(true);
         pageTitle.setText(path.isBlank() ? "Dashboard" : Character.toUpperCase(path.charAt(0)) + path.substring(1));
     }
 
@@ -119,5 +158,47 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         if ("devoluciones".equals(path)) return UserSession.isAdmin() || can(Permiso.REALIZAR_DEVOLUCIONES);
         if ("reportes".equals(path)) return UserSession.isAdmin() || can(Permiso.VER_REPORTES);
         return true;
+    }
+
+    private static final class NavGroup extends VerticalLayout {
+        private final VerticalLayout submenu;
+
+        private NavGroup(String label, VaadinIcon icon, List<Component> items) {
+            setPadding(false);
+            setSpacing(false);
+            setWidthFull();
+            addClassName("nav-group");
+
+            submenu = new VerticalLayout();
+            submenu.setPadding(false);
+            submenu.setSpacing(false);
+            submenu.setWidthFull();
+            submenu.addClassName("nav-submenu");
+            submenu.setVisible(false);
+            items.forEach(submenu::add);
+
+            Span summary = new Span();
+            summary.addClassName("nav-link");
+            summary.addClassName("nav-group-summary");
+            summary.getElement().setAttribute("role", "button");
+            summary.add(icon.create(), new Span(label));
+            Icon chevron = VaadinIcon.ANGLE_DOWN.create();
+            chevron.addClassName("nav-group-chevron");
+            chevron.setSize("14px");
+            summary.add(chevron);
+            summary.getElement().addEventListener("click", e -> setOpened(!isOpened()));
+
+            add(summary, submenu);
+        }
+
+        private void setOpened(boolean opened) {
+            submenu.setVisible(opened);
+            if (opened) addClassName("opened");
+            else removeClassName("opened");
+        }
+
+        private boolean isOpened() {
+            return submenu.isVisible();
+        }
     }
 }
