@@ -63,7 +63,7 @@ class VentaServiceTest {
 
         ventaMock = new Venta();
         ventaMock.setId(1L);
-        ventaMock.setFecha(LocalDate.now());
+        ventaMock.setFecha(java.time.LocalDateTime.now());
         ventaMock.setItems(new ArrayList<>());
         ventaMock.setTotal(BigDecimal.ZERO);
 
@@ -124,7 +124,7 @@ class VentaServiceTest {
         // Arrange
         Venta ventaPersistida = new Venta();
         ventaPersistida.setId(1L);
-        ventaPersistida.setFecha(LocalDate.now());
+        ventaPersistida.setFecha(java.time.LocalDateTime.now());
         ventaPersistida.setItems(new ArrayList<>());
         ventaPersistida.setTotal(BigDecimal.ZERO);
 

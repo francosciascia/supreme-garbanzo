@@ -15,6 +15,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouterLink;
 import com.example.demo.models.PermisoUsuario.Permiso;
 import com.example.demo.services.EmpleadoService;
+import com.example.demo.services.ConfiguracionComercioService;
 
 import java.util.Set;
 
@@ -22,12 +23,25 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
     private final H2 pageTitle = new H2();
     private final Set<Permiso> permisos;
 
-    public MainLayout(EmpleadoService empleadoService) {
+    public MainLayout(EmpleadoService empleadoService, ConfiguracionComercioService configuracionService) {
         var usuarioActual = UserSession.getUser();
         permisos = usuarioActual == null ? Set.of() : empleadoService.permisos(usuarioActual.id());
+        var configuracion = configuracionService.obtener();
+        UI.getCurrent().getPage().executeJs("document.documentElement.style.setProperty('--lumo-primary-color', $0);"
+                        + "document.documentElement.style.setProperty('--lumo-primary-text-color', $0);"
+                        + "document.documentElement.style.setProperty('--brand-secondary-color', $1);"
+                        + "if(localStorage.getItem('color-mode')==='dark')document.documentElement.setAttribute('theme','dark');",
+                configuracion.colorPrimario(), configuracion.colorSecundario());
         setPrimarySection(Section.DRAWER);
-        addToNavbar(new DrawerToggle(), pageTitle);
-        H1 brand = new H1("Franco");
+        pageTitle.getStyle().set("flex-grow", "1");
+        Button theme = new Button("Día / noche", VaadinIcon.ADJUST.create(), event ->
+                UI.getCurrent().getPage().executeJs("const root=document.documentElement;"
+                        + "const dark=root.getAttribute('theme')==='dark';"
+                        + "if(dark)root.removeAttribute('theme');else root.setAttribute('theme','dark');"
+                        + "localStorage.setItem('color-mode',dark?'light':'dark');"));
+        theme.getElement().setAttribute("aria-label", "Cambiar entre modo día y noche");
+        addToNavbar(new DrawerToggle(), pageTitle, theme);
+        H1 brand = new H1(configuracion.nombre());
         brand.addClassName("brand");
         VerticalLayout navigation = new VerticalLayout(
                 link("Dashboard", VaadinIcon.DASHBOARD, DashboardView.class),
@@ -49,7 +63,6 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
             navigation.add(link("Reportes", VaadinIcon.CHART, ReportesView.class));
         if (UserSession.isSuperAdmin()) navigation.add(
                 link("Usuarios", VaadinIcon.USER, UsuariosView.class),
-                link("Empleados", VaadinIcon.USER_CARD, EmpleadosView.class),
                 link("Reglas del negocio", VaadinIcon.SLIDERS, ReglasOperativasView.class),
                 link("Auditoría", VaadinIcon.SEARCH, AuditoriaView.class),
                 link("Configuración", VaadinIcon.COG, ConfiguracionView.class));

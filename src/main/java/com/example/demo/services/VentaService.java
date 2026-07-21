@@ -98,16 +98,21 @@ public class VentaService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<VentaDTO> detalleDTO(Long id) {
+        return ventaRepository.findById(id).map(VentaMapper::toDTO);
+    }
+
+    @Transactional(readOnly = true)
     public Page<VentaDTO> buscar(Long clienteId, LocalDate desde, LocalDate hasta, Pageable pageable) {
         Specification<Venta> specification = (root, query, cb) -> cb.conjunction();
         if (clienteId != null) {
             specification = specification.and((root, query, cb) -> cb.equal(root.get("cliente").get("id"), clienteId));
         }
         if (desde != null) {
-            specification = specification.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("fecha"), desde));
+            specification = specification.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("fecha"), desde.atStartOfDay()));
         }
         if (hasta != null) {
-            specification = specification.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+            specification = specification.and((root, query, cb) -> cb.lessThan(root.get("fecha"), hasta.plusDays(1).atStartOfDay()));
         }
         return ventaRepository.findAll(specification, pageable).map(VentaMapper::toDTO);
     }
@@ -117,7 +122,7 @@ public class VentaService {
     public Venta crear(VentaCreateDTO ventaDTO) {
         com.example.demo.dto.ReglasOperativasDTO reglas = reglasOperativasService == null ? null : reglasOperativasService.obtener();
         Venta venta = new Venta();
-        venta.setFecha(java.time.LocalDate.now());
+        venta.setFecha(java.time.LocalDateTime.now());
         venta.setTotal(java.math.BigDecimal.ZERO);
         venta.setEstado(Venta.Estado.CONFIRMADA);
         venta.setMedioPago(parseMedioPago(ventaDTO.medioPago()));

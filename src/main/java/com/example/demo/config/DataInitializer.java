@@ -375,7 +375,7 @@ public class DataInitializer implements CommandLineRunner {
 
         if (laptop != null && mouse != null && teclado != null) {
             Venta venta1 = Venta.builder()
-                    .fecha(java.time.LocalDate.now().minusDays(2))
+                    .fecha(java.time.LocalDate.now().minusDays(2).atTime(10, 30))
                     .total(new BigDecimal("895.99"))
                     .build();
 
@@ -398,7 +398,7 @@ public class DataInitializer implements CommandLineRunner {
 
             if (monitor != null && auriculares != null) {
                 Venta venta2 = Venta.builder()
-                        .fecha(java.time.LocalDate.now().minusDays(1))
+                        .fecha(java.time.LocalDate.now().minusDays(1).atTime(18, 15))
                         .total(new BigDecimal("630.00"))
                         .build();
 
@@ -421,7 +421,7 @@ public class DataInitializer implements CommandLineRunner {
             }
 
             Venta venta3 = Venta.builder()
-                    .fecha(java.time.LocalDate.now())
+                    .fecha(java.time.LocalDate.now().atTime(14, 0))
                     .total(new BigDecimal("120.50"))
                     .build();
 

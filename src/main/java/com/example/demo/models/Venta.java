@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +23,7 @@ public class Venta {
     private long id;
 
     @Column(nullable = false)
-    private LocalDate fecha;
+    private LocalDateTime fecha;
 
     @OneToMany(
             mappedBy = "venta",
@@ -79,7 +79,7 @@ public class Venta {
     @PrePersist
     @PreUpdate
     public void calcularTotal(){
-        if (fecha == null) fecha = LocalDate.now();
+        if (fecha == null) fecha = LocalDateTime.now();
         if (total == null) total = BigDecimal.ZERO;
         BigDecimal bruto = items.stream()
                 .map(ItemVenta::getSubtotal)

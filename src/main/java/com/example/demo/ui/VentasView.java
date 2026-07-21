@@ -124,9 +124,10 @@ public class VentasView extends VerticalLayout {
                 var caja = cajaService.activa(UserSession.getUser().id());
                 if (reglasService.obtener().cajaObligatoria() && caja.isEmpty())
                     throw new IllegalStateException("Abrí la caja antes de vender");
-                service.crear(new VentaCreateDTO(client.getValue() == null ? null : client.getValue().id(), items,
+                var sale = service.crear(new VentaCreateDTO(client.getValue() == null ? null : client.getValue().id(), items,
                         payment.getValue(), received.getValue(), discount.getValue(), caja.map(com.example.demo.dto.CajaDTO::id).orElse(null), UserSession.getUser().id()));
                 dialog.close(); refresh(); ViewSupport.success("Venta creada");
+                getUI().ifPresent(ui -> ui.navigate("ticket/" + sale.getId()));
             } catch (RuntimeException exception) { ViewSupport.error(exception); }
         });
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY); dialog.getFooter().add(cancel, save); dialog.open();

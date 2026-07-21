@@ -5,7 +5,7 @@
   --lumo-font-family: Inter, "Segoe UI", sans-serif;
 }
 
-html, body { background: #f5f7fb; }
+html, body { background: var(--lumo-shade-5pct); }
 
 .content-view { padding: var(--lumo-space-l); }
 
@@ -38,21 +38,45 @@ vaadin-app-layout::part(drawer) { overflow-x: hidden; }
 .demo-credentials p:first-child { font-weight: 600; color: var(--lumo-primary-text-color); }
 
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; width: 100%; }
-.metric-card { background: white; border: 1px solid var(--lumo-contrast-10pct); border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 18px #0f172a0d; }
+.metric-card { background: var(--lumo-base-color); border: 1px solid var(--lumo-contrast-10pct); border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 18px #0f172a0d; }
 .metric-card span { color: var(--lumo-secondary-text-color); }
 .metric-card h3 { margin: .45rem 0 0; font-size: 1.65rem; }
+.report-summary { color: var(--lumo-secondary-text-color); margin: 0 0 var(--lumo-space-m); }
+.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--lumo-space-l); width: 100%; }
+.chart-panel { box-sizing: border-box; padding: var(--lumo-space-l); background: var(--lumo-base-color); border: 1px solid var(--lumo-contrast-10pct); border-radius: var(--lumo-border-radius-l); }
+.chart-panel h3 { margin: 0 0 var(--lumo-space-l); }
+.bar-row { margin-bottom: var(--lumo-space-m); }
+.bar-label { display: flex; justify-content: space-between; gap: var(--lumo-space-m); margin-bottom: var(--lumo-space-xs); font-size: var(--lumo-font-size-s); }
+.bar-label span:last-child { color: var(--lumo-secondary-text-color); white-space: nowrap; }
+.bar-track { height: 12px; overflow: hidden; border-radius: 999px; background: var(--lumo-contrast-10pct); }
+.bar-fill { min-width: 2px; height: 100%; border-radius: inherit; background: var(--lumo-primary-color); }
+.donut-content { display: flex; align-items: center; justify-content: center; gap: var(--lumo-space-xl); min-height: 240px; }
+.donut-chart { position: relative; display: grid; place-items: center; width: 180px; height: 180px; flex: 0 0 auto; border-radius: 50%; }
+.donut-chart::after { content: ""; width: 105px; height: 105px; border-radius: 50%; background: var(--lumo-base-color); }
+.donut-chart span { position: absolute; z-index: 1; font-size: var(--lumo-font-size-xl); font-weight: 700; }
+.chart-legend { display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.legend-item::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: var(--lumo-space-s); border-radius: 50%; background: var(--legend-color); }
 .pagination-bar { gap: var(--lumo-space-s); padding-top: var(--lumo-space-s); }
 .pagination-bar span { min-width: 220px; text-align: center; color: var(--lumo-secondary-text-color); }
 
-.ticket-page { align-items: center; background: white; min-height: 100vh; }
-.thermal-ticket { width: var(--ticket-width, 80mm); box-sizing: border-box; padding: 4mm; color: #000; background: #fff; font-family: "Courier New", monospace; }
-.thermal-ticket h2, .thermal-ticket h3, .thermal-ticket p { margin: 2mm 0; text-align: center; }
-.thermal-ticket p { font-size: 11px; overflow-wrap: anywhere; }
+.ticket-page { align-items: center; box-sizing: border-box; background: #f3f4f6; min-height: 100vh; padding: 24px; }
+.thermal-ticket { width: var(--ticket-width, 80mm); box-sizing: border-box; padding: 4mm; color: #000; background: #fff; font: 12px/1.3 "Courier New", monospace; box-shadow: 0 8px 30px #0002; }
+.thermal-ticket h2 { margin: 0 0 2mm; text-align: center; font-size: 18px; overflow-wrap: anywhere; }
+.thermal-ticket p { margin: 1mm 0; text-align: center; overflow-wrap: anywhere; }
+.ticket-header, .ticket-footer { white-space: pre-line; }
+.ticket-separator { margin: 2mm 0; border: 0; border-top: 1px dashed #000; }
+.ticket-line { display: flex; justify-content: space-between; gap: 3mm; margin: 1mm 0; }
+.ticket-line span:last-child { text-align: right; overflow-wrap: anywhere; }
+.ticket-item { margin: 0 0 2mm; }
+.ticket-item span { display: block; overflow-wrap: anywhere; }
+.ticket-item span:last-child { margin-top: .5mm; text-align: right; }
+.ticket-total { font-size: 16px; font-weight: 700; }
+.ticket-cancelled { padding: 2mm; border: 2px solid #000; font-weight: 700; }
 
 @media print {
   @page { size: var(--ticket-width, 80mm) auto; margin: 0; }
-  html, body, .ticket-page { width: var(--ticket-width, 80mm); margin: 0; padding: 0; background: #fff; }
-  .thermal-ticket { width: 100%; padding: 3mm; }
+  html, body, .ticket-page { width: var(--ticket-width, 80mm); min-width: 0; margin: 0; padding: 0; background: #fff; }
+  .thermal-ticket { width: 100%; padding: 3mm; box-shadow: none; }
   .no-print { display: none !important; }
 }
 

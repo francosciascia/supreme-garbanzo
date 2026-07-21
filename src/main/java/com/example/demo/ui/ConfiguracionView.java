@@ -31,8 +31,8 @@ public class ConfiguracionView extends VerticalLayout {
         TextField businessType = field("Rubro", "Ej.: kiosco, repuestos de motos, almacén", current.rubro());
         TextField slogan = field("Slogan", "Frase corta debajo del nombre", current.slogan());
         TextField logoUrl = field("URL del logo", "Imagen HTTPS para menú, login y comprobantes", current.logoUrl());
-        TextField primaryColor = field("Color principal", "Formato hexadecimal, por ejemplo #2563EB", current.colorPrimario());
-        TextField secondaryColor = field("Color secundario", "Se utiliza en fondos y contraste", current.colorSecundario());
+        ComboBox<String> primaryColor = palette("Color principal", current.colorPrimario());
+        ComboBox<String> secondaryColor = palette("Color de contraste", current.colorSecundario());
 
         FormLayout identityForm = form(name, businessType, slogan, logoUrl, primaryColor, secondaryColor);
         Details identity = section("Identidad visual", "Personaliza la marca que verá el cliente en todo el sistema.", identityForm);
@@ -110,6 +110,31 @@ public class ConfiguracionView extends VerticalLayout {
         if (helper != null) field.setHelperText(helper);
         set(field, value);
         return field;
+    }
+
+    private ComboBox<String> palette(String label, String current) {
+        ComboBox<String> field = new ComboBox<>(label);
+        java.util.LinkedHashSet<String> colors = new java.util.LinkedHashSet<>(java.util.List.of(
+                "#2563EB", "#0F766E", "#16A34A", "#7C3AED", "#DC2626", "#EA580C", "#0F172A", "#334155"));
+        colors.add(current);
+        field.setItems(colors);
+        field.setItemLabelGenerator(this::colorName);
+        field.setValue(current);
+        return field;
+    }
+
+    private String colorName(String color) {
+        return switch (color) {
+            case "#2563EB" -> "Azul";
+            case "#0F766E" -> "Verde petróleo";
+            case "#16A34A" -> "Verde";
+            case "#7C3AED" -> "Violeta";
+            case "#DC2626" -> "Rojo";
+            case "#EA580C" -> "Naranja";
+            case "#0F172A" -> "Azul noche";
+            case "#334155" -> "Gris pizarra";
+            default -> color;
+        };
     }
 
     private void applyTheme(ConfiguracionComercioDTO config) {
