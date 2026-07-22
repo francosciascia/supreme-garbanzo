@@ -1,6 +1,8 @@
 package com.example.demo.ui;
 
+import com.example.demo.dto.PresetRubro;
 import com.example.demo.dto.ReglasOperativasDTO;
+import com.example.demo.services.PresetRubroService;
 import com.example.demo.services.ReglasOperativasService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -21,41 +23,88 @@ import java.math.BigDecimal;
 @Route(value = "reglas", layout = MainLayout.class)
 @PageTitle("Reglas del negocio")
 public class ReglasOperativasView extends VerticalLayout {
-    public ReglasOperativasView(ReglasOperativasService service) {
+    public ReglasOperativasView(ReglasOperativasService service, PresetRubroService presets) {
         addClassName("content-view");
         setWidthFull();
         ReglasOperativasDTO current = service.obtener();
+
+        ComboBox<PresetRubro> preset = new ComboBox<>("Perfil por rubro");
+        preset.setItems(PresetRubro.disponibles());
+        preset.setItemLabelGenerator(PresetRubro::nombre);
+        preset.setWidthFull();
+        preset.setPlaceholder("Elegí un rubro para partir de una base");
+        Paragraph presetHelp = new Paragraph("Aplica un paquete de reglas típicas. Después podés seguir ajustando todo a mano.");
+        Paragraph presetDetail = new Paragraph("");
+        preset.addValueChangeListener(event -> {
+            if (event.getValue() == null) presetDetail.setText("");
+            else presetDetail.setText(event.getValue().descripcion());
+        });
+        Button applyPreset = new Button("Aplicar preset", event -> {
+            if (preset.getValue() == null) {
+                ViewSupport.error(new IllegalArgumentException("Seleccioná un perfil de rubro"));
+                return;
+            }
+            PresetRubro chosen = preset.getValue();
+            ViewSupport.confirm(
+                    "Aplicar preset",
+                    "Aplicar",
+                    "Se van a reemplazar las reglas actuales por el perfil \"" + chosen.nombre()
+                            + "\" y se actualizará el rubro del comercio. ¿Continuar?",
+                    () -> {
+                        try {
+                            presets.aplicar(chosen, UserSession.getUser().id());
+                            ViewSupport.success("Preset aplicado. Recargá o reingresá para actualizar el menú.");
+                            getUI().ifPresent(ui -> ui.getPage().reload());
+                        } catch (RuntimeException exception) {
+                            ViewSupport.error(exception);
+                        }
+                    },
+                    false);
+        });
+        Details presetsSection = section("Presets por rubro",
+                "Atajo para arrancar según el tipo de negocio. No reemplaza la personalización fina de abajo.",
+                preset, presetHelp, presetDetail, applyPreset);
+        presetsSection.setOpened(true);
 
         Checkbox cash = check("Exigir una caja abierta para vender", "Evita ventas fuera de un turno de caja.", current.cajaObligatoria());
         Checkbox requireClient = check("Exigir un cliente en cada venta", "Útil para comercios que necesitan historial por comprador.", current.requerirClienteVenta());
         Checkbox negative = check("Permitir vender aunque no haya stock", "El inventario puede quedar negativo; recomendable sólo para rubros bajo pedido.", current.permitirVentaSinStock());
         Checkbox manualPrice = check("Permitir modificar el precio durante la venta", "Además requiere el permiso individual Modificar precios.", current.permitirPrecioManual());
-        BigDecimalField maxDiscount = new BigDecimalField("Descuento máximo por venta (%)"); maxDiscount.setValue(current.descuentoMaximo());
+        BigDecimalField maxDiscount = new BigDecimalField("Descuento máximo por venta (%)");
+        maxDiscount.setValue(current.descuentoMaximo());
         ComboBox<String> defaultPayment = new ComboBox<>("Medio de pago inicial");
         defaultPayment.setItems("EFECTIVO", "DEBITO", "CREDITO", "TRANSFERENCIA", "CUENTA_CORRIENTE");
         defaultPayment.setValue(current.medioPagoPredeterminado());
         Details sales = section("Ventas y caja", "Reglas que se aplican automáticamente en el punto de venta.",
                 cash, requireClient, negative, manualPrice, form(maxDiscount, defaultPayment));
-        sales.setOpened(true);
 
         Checkbox credit = check("Habilitar cuenta corriente o fiado", "Permite registrar ventas que el cliente pagará más adelante.", current.fiadoHabilitado());
-        BigDecimalField defaultLimit = new BigDecimalField("Límite de crédito predeterminado"); defaultLimit.setValue(current.limiteCreditoPredeterminado());
+        BigDecimalField defaultLimit = new BigDecimalField("Límite de crédito predeterminado");
+        defaultLimit.setValue(current.limiteCreditoPredeterminado());
         defaultLimit.setHelperText("Se usa cuando el cliente no tiene un límite propio.");
-        defaultLimit.setEnabled(credit.getValue()); credit.addValueChangeListener(event -> defaultLimit.setEnabled(event.getValue()));
+        defaultLimit.setEnabled(credit.getValue());
+        credit.addValueChangeListener(event -> defaultLimit.setEnabled(event.getValue()));
         Details clients = section("Clientes y crédito", "Define cómo se administran las deudas y límites de compra.", credit, defaultLimit);
 
         Checkbox returnsEnabled = check("Permitir devoluciones", "Habilita devoluciones parciales con reintegro o saldo a favor.", current.devolucionesHabilitadas());
-        IntegerField returnDays = new IntegerField("Plazo máximo para devolver (días)"); returnDays.setValue(current.diasMaximosDevolucion());
+        IntegerField returnDays = new IntegerField("Plazo máximo para devolver (días)");
+        returnDays.setValue(current.diasMaximosDevolucion());
         Checkbox ownerCancel = check("Sólo el dueño puede anular ventas completas", "Las devoluciones parciales siguen sus permisos específicos.", current.anulacionSoloDueno());
-        returnDays.setEnabled(returnsEnabled.getValue()); returnsEnabled.addValueChangeListener(event -> returnDays.setEnabled(event.getValue()));
+        returnDays.setEnabled(returnsEnabled.getValue());
+        returnsEnabled.addValueChangeListener(event -> returnDays.setEnabled(event.getValue()));
         Details afterSale = section("Devoluciones y anulaciones", "Controla correcciones posteriores a una venta confirmada.",
                 returnsEnabled, returnDays, ownerCancel);
 
         Checkbox expiration = check("Controlar lotes y vencimientos", "Activar para alimentos, bebidas u otros productos con caducidad.", current.controlarVencimientos());
         Checkbox blockExpired = check("Bloquear la venta de mercadería vencida", "Si se desactiva, el sistema sólo mostrará la advertencia.", current.bloquearVentaVencidos());
-        IntegerField expirationDays = new IntegerField("Avisar con anticipación (días)"); expirationDays.setValue(current.diasAlertaVencimiento());
-        blockExpired.setEnabled(expiration.getValue()); expirationDays.setEnabled(expiration.getValue());
-        expiration.addValueChangeListener(event -> { blockExpired.setEnabled(event.getValue()); expirationDays.setEnabled(event.getValue()); });
+        IntegerField expirationDays = new IntegerField("Avisar con anticipación (días)");
+        expirationDays.setValue(current.diasAlertaVencimiento());
+        blockExpired.setEnabled(expiration.getValue());
+        expirationDays.setEnabled(expiration.getValue());
+        expiration.addValueChangeListener(event -> {
+            blockExpired.setEnabled(event.getValue());
+            expirationDays.setEnabled(event.getValue());
+        });
         Details inventory = section("Stock y vencimientos", "Permite adaptar la misma base a un kiosco o a un negocio sin productos perecederos.",
                 expiration, blockExpired, expirationDays);
 
@@ -75,8 +124,9 @@ public class ReglasOperativasView extends VerticalLayout {
         Button back = new Button("Volver a configuración",
                 event -> getUI().ifPresent(ui -> ui.navigate(ConfiguracionView.class)));
         HorizontalLayout actions = new HorizontalLayout(save, back);
-        add(ViewSupport.header("Reglas del negocio"), new Paragraph("Estas opciones cambian el comportamiento diario sin requerir modificaciones de código."),
-                sales, clients, afterSale, inventory, actions);
+        add(ViewSupport.header("Reglas del negocio"),
+                new Paragraph("Estas opciones cambian el comportamiento diario sin requerir modificaciones de código."),
+                presetsSection, sales, clients, afterSale, inventory, actions);
     }
 
     private Checkbox check(String label, String helper, boolean value) {
@@ -87,8 +137,10 @@ public class ReglasOperativasView extends VerticalLayout {
 
     private Details section(String title, String description, com.vaadin.flow.component.Component... fields) {
         VerticalLayout content = new VerticalLayout(new Paragraph(description));
-        content.add(fields); content.setPadding(false);
-        Details details = new Details(title, content); details.setWidthFull();
+        content.add(fields);
+        content.setPadding(false);
+        Details details = new Details(title, content);
+        details.setWidthFull();
         return details;
     }
 

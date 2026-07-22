@@ -35,15 +35,20 @@ final class ViewSupport {
     }
 
     static void confirm(String message, Runnable action) {
+        confirm("Confirmar", "Confirmar", message, action, true);
+    }
+
+    static void confirm(String title, String acceptLabel, String message, Runnable action, boolean danger) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Confirmar eliminación");
+        dialog.setHeaderTitle(title);
         dialog.add(message);
         Button cancel = new Button("Cancelar", event -> dialog.close());
-        Button accept = new Button("Eliminar", event -> {
+        Button accept = new Button(acceptLabel, event -> {
             dialog.close();
             action.run();
         });
-        accept.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        if (danger) accept.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        else accept.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         dialog.getFooter().add(cancel, accept);
         dialog.open();
     }
