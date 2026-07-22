@@ -52,6 +52,8 @@ public class ProductosView extends VerticalLayout {
         Button add = new Button("Nuevo producto", VaadinIcon.PLUS.create(), event -> openForm(null));
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         add.setVisible(UserSession.isAdmin());
+        Button categories = new Button("Categorías", VaadinIcon.TAGS.create(),
+                event -> getUI().ifPresent(ui -> ui.navigate(CategoriasView.class)));
         Button prices = new Button("Actualizar precios", event -> openPriceUpdate());
         prices.setVisible(UserSession.isAdmin());
         search.setPlaceholder("Buscar producto...");
@@ -73,7 +75,7 @@ public class ProductosView extends VerticalLayout {
         grid.addColumn(product -> Boolean.TRUE.equals(product.vencimiento()) ? "Sí" : "No").setHeader("Vence");
         grid.addComponentColumn(this::actions).setHeader("Acciones").setAutoWidth(true);
         grid.setSizeFull();
-        add(ViewSupport.header("Gestión de productos", prices, add), new HorizontalLayout(search, categoryFilter), grid, pagination);
+        add(ViewSupport.header("Gestión de productos", categories, prices, add), new HorizontalLayout(search, categoryFilter), grid, pagination);
         expand(grid);
         refresh();
     }

@@ -32,6 +32,8 @@ public class CategoriasView extends VerticalLayout {
         Button add = new Button("Nueva categoría", VaadinIcon.PLUS.create(), event -> openForm(null));
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         add.setVisible(UserSession.isAdmin());
+        Button back = new Button("Volver a productos",
+                event -> getUI().ifPresent(ui -> ui.navigate(ProductosView.class)));
         search.setPlaceholder("Buscar categoría...");
         search.setPrefixComponent(VaadinIcon.SEARCH.create());
         search.setValueChangeMode(ValueChangeMode.LAZY);
@@ -40,7 +42,7 @@ public class CategoriasView extends VerticalLayout {
         grid.addColumn(CategoriaDTO::descripcion).setHeader("Descripción").setFlexGrow(1);
         grid.addComponentColumn(this::actions).setHeader("Acciones").setAutoWidth(true);
         grid.setSizeFull();
-        add(ViewSupport.header("Gestión de categorías", add), search, grid);
+        add(ViewSupport.header("Gestión de categorías", back, add), search, grid);
         expand(grid);
         refresh();
     }

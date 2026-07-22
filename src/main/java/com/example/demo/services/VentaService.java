@@ -129,6 +129,10 @@ public class VentaService {
         venta.setDescuento(ventaDTO.descuento() == null ? BigDecimal.ZERO : ventaDTO.descuento());
         if (venta.getDescuento().signum() < 0) throw new IllegalArgumentException("El descuento no puede ser negativo");
         if (reglas != null && reglas.cajaObligatoria() && ventaDTO.cajaId() == null) throw new IllegalStateException("Debés abrir una caja antes de vender");
+        if (reglas != null && reglas.requerirClienteVenta() && ventaDTO.clienteId() == null)
+            throw new IllegalArgumentException("Esta venta requiere un cliente");
+        if (venta.getMedioPago() == Venta.MedioPago.CUENTA_CORRIENTE && (reglas == null || !reglas.fiadoHabilitado()))
+            throw new IllegalStateException("La cuenta corriente no está habilitada");
         if (ventaDTO.cajaId() != null) {
             if (cajaRepository == null) throw new IllegalStateException("Caja no disponible");
             Caja caja = cajaRepository.findById(ventaDTO.cajaId()).orElseThrow(() -> new IllegalArgumentException("Caja inexistente"));
@@ -156,7 +160,7 @@ public class VentaService {
                 throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() +
                     ". Stock disponible: " + p.getStock());
             }
-            if (!permitirSinStock) validarStockVendible(p, itemDTO.cantidad());
+            if (!permitirSinStock) validarStockVendible(p, itemDTO.cantidad(), reglas);
 
             ItemVenta item = new ItemVenta();
             item.setProducto(p);
@@ -174,7 +178,7 @@ public class VentaService {
             item.setCostoUnitario(p.getCosto());
             item.setUnidadVenta(p.getUnidadVenta());
             item.setVenta(venta);
-            asignarLotes(item, p, itemDTO.cantidad());
+            asignarLotes(item, p, itemDTO.cantidad(), reglas);
 
             p.setStock(p.getStock() - itemDTO.cantidad());
             venta.addItems(item);
@@ -219,7 +223,8 @@ public class VentaService {
             throw new IllegalStateException("Sin stock suficiente para " + p.getNombre() + 
                 ". Stock disponible: " + p.getStock());
         }
-        validarStockVendible(p, itemDTO.cantidad());
+        var reglas = reglasOperativasService == null ? null : reglasOperativasService.obtener();
+        validarStockVendible(p, itemDTO.cantidad(), reglas);
 
         ItemVenta nuevoItem = new ItemVenta();
         nuevoItem.setProducto(p);
@@ -228,7 +233,7 @@ public class VentaService {
         nuevoItem.setCostoUnitario(p.getCosto());
         nuevoItem.setUnidadVenta(p.getUnidadVenta());
         nuevoItem.setVenta(venta);
-        asignarLotes(nuevoItem, p, itemDTO.cantidad());
+        asignarLotes(nuevoItem, p, itemDTO.cantidad(), reglas);
 
         p.setStock(p.getStock() - itemDTO.cantidad());
         venta.addItems(nuevoItem);
@@ -286,22 +291,37 @@ public class VentaService {
                 && cantidad >= producto.getCantidadMinimaPromo() ? producto.getPrecioPromocional() : producto.getPrecioVenta();
     }
 
-    private void asignarLotes(ItemVenta item, Producto producto, int cantidad) {
+    private void asignarLotes(ItemVenta item, Producto producto, int cantidad,
+                              com.example.demo.dto.ReglasOperativasDTO reglas) {
         if (loteProductoRepository == null) return;
+        boolean controlar = reglas == null || reglas.controlarVencimientos();
+        boolean bloquearVencidos = reglas == null || reglas.bloquearVentaVencidos();
+        var lotes = controlar && bloquearVencidos
+                ? loteProductoRepository.disponiblesFefo(producto.getId())
+                : loteProductoRepository.disponiblesTodos(producto.getId());
         int pendiente = cantidad;
-        for (LoteProducto lote : loteProductoRepository.disponiblesFefo(producto.getId())) {
+        for (LoteProducto lote : lotes) {
             if (pendiente == 0) break;
             int usado = Math.min(pendiente, lote.getCantidadDisponible());
             lote.setCantidadDisponible(lote.getCantidadDisponible() - usado); item.asignarLote(lote, usado); pendiente -= usado;
         }
     }
 
-    private void validarStockVendible(Producto producto, int cantidad) {
+    private void validarStockVendible(Producto producto, int cantidad,
+                                      com.example.demo.dto.ReglasOperativasDTO reglas) {
         if (loteProductoRepository == null) return;
+        if (reglas != null && !reglas.controlarVencimientos()) return;
         long trazado = loteProductoRepository.cantidadTrazada(producto.getId());
-        long vendible = loteProductoRepository.cantidadVendible(producto.getId());
+        boolean bloquearVencidos = reglas == null || reglas.bloquearVentaVencidos();
+        long disponible = bloquearVencidos
+                ? loteProductoRepository.cantidadVendible(producto.getId())
+                : trazado;
         long legado = Math.max(0, producto.getStock() - trazado);
-        if (legado + vendible < cantidad) throw new IllegalStateException("No hay stock vigente suficiente para " + producto.getNombre());
+        if (legado + disponible < cantidad) {
+            throw new IllegalStateException(bloquearVencidos
+                    ? "No hay stock vigente suficiente para " + producto.getNombre()
+                    : "No hay stock suficiente para " + producto.getNombre());
+        }
     }
 
     private void restaurarLotes(ItemVenta item) {

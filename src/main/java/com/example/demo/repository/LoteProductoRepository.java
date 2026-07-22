@@ -4,6 +4,10 @@ public interface LoteProductoRepository extends JpaRepository<LoteProducto,Long>
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select l from LoteProducto l where l.producto.id=:productoId and l.activo=true and l.cantidadDisponible>0 and (l.fechaVencimiento is null or l.fechaVencimiento>=current_date) order by case when l.fechaVencimiento is null then 1 else 0 end, l.fechaVencimiento, l.fechaIngreso, l.id")
     List<LoteProducto> disponiblesFefo(@Param("productoId")Long productoId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LoteProducto l where l.producto.id=:productoId and l.activo=true and l.cantidadDisponible>0 order by case when l.fechaVencimiento is null then 1 else 0 end, l.fechaVencimiento, l.fechaIngreso, l.id")
+    List<LoteProducto> disponiblesTodos(@Param("productoId")Long productoId);
     @Query("select coalesce(sum(l.cantidadDisponible),0) from LoteProducto l where l.producto.id=:productoId and l.activo=true")
     Long cantidadTrazada(@Param("productoId")Long productoId);
     @Query("select coalesce(sum(l.cantidadDisponible),0) from LoteProducto l where l.producto.id=:productoId and l.activo=true and (l.fechaVencimiento is null or l.fechaVencimiento>=current_date)")

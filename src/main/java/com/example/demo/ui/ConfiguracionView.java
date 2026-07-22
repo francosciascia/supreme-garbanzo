@@ -12,6 +12,8 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -87,8 +89,11 @@ public class ConfiguracionView extends VerticalLayout {
             }
         });
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button reglas = new Button("Reglas del negocio", VaadinIcon.SLIDERS.create(),
+                event -> getUI().ifPresent(ui -> ui.navigate(ReglasOperativasView.class)));
+        HorizontalLayout actions = new HorizontalLayout(save, reglas);
         add(ViewSupport.header("Configuración del comercio"), new Paragraph("Estos datos cambian la identidad del producto para cada cliente sin alterar la lógica central."),
-                preview, identity, fiscal, contact, tickets, save);
+                preview, identity, fiscal, contact, tickets, actions);
     }
 
     private Details section(String title, String description, com.vaadin.flow.component.Component content) {

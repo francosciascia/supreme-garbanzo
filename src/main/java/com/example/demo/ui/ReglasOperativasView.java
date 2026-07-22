@@ -9,6 +9,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -71,8 +72,11 @@ public class ReglasOperativasView extends VerticalLayout {
             }
         });
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button back = new Button("Volver a configuración",
+                event -> getUI().ifPresent(ui -> ui.navigate(ConfiguracionView.class)));
+        HorizontalLayout actions = new HorizontalLayout(save, back);
         add(ViewSupport.header("Reglas del negocio"), new Paragraph("Estas opciones cambian el comportamiento diario sin requerir modificaciones de código."),
-                sales, clients, afterSale, inventory, save);
+                sales, clients, afterSale, inventory, actions);
     }
 
     private Checkbox check(String label, String helper, boolean value) {

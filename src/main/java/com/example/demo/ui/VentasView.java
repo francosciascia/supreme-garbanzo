@@ -89,11 +89,19 @@ public class VentasView extends VerticalLayout {
 
     private void openForm() {
         Dialog dialog = new Dialog(); dialog.setHeaderTitle("Nueva venta"); dialog.setWidth("min(760px, 95vw)");
-        ComboBox<ClienteDTO> client = new ComboBox<>("Cliente (opcional)");
+        var reglas = reglasService.obtener();
+        ComboBox<ClienteDTO> client = new ComboBox<>(reglas.requerirClienteVenta() ? "Cliente" : "Cliente (opcional)");
         client.setItems(clienteService.listar()); client.setItemLabelGenerator(value -> value.nombre() + " " + value.apellido() + " · DNI " + value.dni());
-        client.setClearButtonVisible(true); client.setWidthFull();
+        client.setClearButtonVisible(!reglas.requerirClienteVenta()); client.setWidthFull();
+        if (reglas.requerirClienteVenta()) client.setRequired(true);
         TextField barcode = new TextField("Escanear código de barras"); barcode.setPlaceholder("Escaneá y presioná Enter"); barcode.setWidthFull();
-        ComboBox<String> payment = new ComboBox<>("Medio de pago"); payment.setItems("EFECTIVO", "DEBITO", "CREDITO", "TRANSFERENCIA", "CUENTA_CORRIENTE"); payment.setValue("EFECTIVO");
+        ComboBox<String> payment = new ComboBox<>("Medio de pago");
+        List<String> medios = new ArrayList<>(List.of("EFECTIVO", "DEBITO", "CREDITO", "TRANSFERENCIA"));
+        if (reglas.fiadoHabilitado()) medios.add("CUENTA_CORRIENTE");
+        payment.setItems(medios);
+        String defaultPayment = medios.contains(reglas.medioPagoPredeterminado())
+                ? reglas.medioPagoPredeterminado() : "EFECTIVO";
+        payment.setValue(defaultPayment);
         BigDecimalField received = new BigDecimalField("Monto recibido");
         BigDecimalField discount = new BigDecimalField("Descuento"); discount.setValue(BigDecimal.ZERO);
         discount.setReadOnly(!canDiscount);
@@ -115,6 +123,9 @@ public class VentasView extends VerticalLayout {
         addItemRow(itemContainer, rows, updateTotal);
         Button cancel = new Button("Cancelar", event -> dialog.close());
         Button save = new Button("Crear venta", event -> {
+            if (reglas.requerirClienteVenta() && client.getValue() == null) {
+                ViewSupport.error(new IllegalArgumentException("Seleccioná un cliente")); return;
+            }
             if (rows.isEmpty() || rows.stream().anyMatch(row -> row.product.getValue() == null || row.quantity.isEmpty())) {
                 ViewSupport.error(new IllegalArgumentException("Seleccioná un producto y una cantidad en cada ítem")); return;
             }
@@ -122,7 +133,7 @@ public class VentasView extends VerticalLayout {
                 List<ItemVentaCreateDTO> items = rows.stream().map(row -> new ItemVentaCreateDTO(
                         row.product.getValue().id(), row.baseQuantity(), canManualPrice ? row.price.getValue() : null)).toList();
                 var caja = cajaService.activa(UserSession.getUser().id());
-                if (reglasService.obtener().cajaObligatoria() && caja.isEmpty())
+                if (reglas.cajaObligatoria() && caja.isEmpty())
                     throw new IllegalStateException("Abrí la caja antes de vender");
                 var sale = service.crear(new VentaCreateDTO(client.getValue() == null ? null : client.getValue().id(), items,
                         payment.getValue(), received.getValue(), discount.getValue(), caja.map(com.example.demo.dto.CajaDTO::id).orElse(null), UserSession.getUser().id()));
