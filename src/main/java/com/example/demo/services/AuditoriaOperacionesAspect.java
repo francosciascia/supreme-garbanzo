@@ -42,7 +42,8 @@ public class AuditoriaOperacionesAspect {
     private boolean yaRegistraDetalle(ProceedingJoinPoint joinPoint, Method method) {
         String key = joinPoint.getTarget().getClass().getSimpleName() + "." + method.getName();
         return key.equals("EmpleadoService.guardar") || key.equals("ReglasOperativasService.guardar")
-                || key.equals("DevolucionService.crear") || key.equals("CuentaCorrienteService.registrarPago");
+                || key.equals("DevolucionService.crear") || key.equals("CuentaCorrienteService.registrarPago")
+                || key.equals("CajaService.abrir") || key.equals("CajaService.cerrar");
     }
 
     private Long usuarioActual(Object result) {

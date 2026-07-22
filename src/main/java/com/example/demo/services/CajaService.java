@@ -1,11 +1,13 @@
 package com.example.demo.services;
 
 import com.example.demo.dto.CajaDTO;
+import com.example.demo.dto.CierreCajaResumenDTO;
 import com.example.demo.dto.MovimientoCajaDTO;
 import com.example.demo.models.*;
 import com.example.demo.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,9 +18,14 @@ public class CajaService {
     private final CajaRepository cajas;
     private final MovimientoCajaRepository movimientos;
     private final PersonaRepository personas;
+    private final AuditoriaService auditoria;
 
-    public CajaService(CajaRepository cajas, MovimientoCajaRepository movimientos, PersonaRepository personas) {
-        this.cajas = cajas; this.movimientos = movimientos; this.personas = personas;
+    public CajaService(CajaRepository cajas, MovimientoCajaRepository movimientos, PersonaRepository personas,
+                       AuditoriaService auditoria) {
+        this.cajas = cajas;
+        this.movimientos = movimientos;
+        this.personas = personas;
+        this.auditoria = auditoria;
     }
 
     @Transactional
@@ -27,8 +34,10 @@ public class CajaService {
         if (cajas.findFirstByUsuarioIdAndEstadoOrderByFechaAperturaDesc(usuarioId, Caja.Estado.ABIERTA).isPresent())
             throw new IllegalStateException("El usuario ya tiene una caja abierta");
         Persona usuario = personas.findById(usuarioId).orElseThrow(() -> new IllegalArgumentException("Usuario inexistente"));
-        return toDTO(cajas.save(Caja.builder().usuario(usuario).fechaApertura(LocalDateTime.now())
+        CajaDTO abierta = toDTO(cajas.save(Caja.builder().usuario(usuario).fechaApertura(LocalDateTime.now())
                 .montoInicial(montoInicial).estado(Caja.Estado.ABIERTA).build()));
+        auditoria.registrar(usuarioId, "CREAR", "CAJA", abierta.id(), "Apertura con inicial " + montoInicial);
+        return abierta;
     }
 
     @Transactional(readOnly = true)
@@ -46,14 +55,43 @@ public class CajaService {
                 .tipo(tipo).monto(monto).descripcion(descripcion).build()));
     }
 
+    @Transactional(readOnly = true)
+    public CierreCajaResumenDTO resumenCierre(Long cajaId) {
+        Caja caja = cajaAbierta(cajaId);
+        List<MovimientoCajaDTO> movs = movimientos(cajaId);
+        BigDecimal ventas = sum(movs, MovimientoCaja.Tipo.VENTA.name());
+        BigDecimal ingresos = sum(movs, MovimientoCaja.Tipo.INGRESO.name());
+        BigDecimal retiros = sum(movs, MovimientoCaja.Tipo.RETIRO.name());
+        BigDecimal anulaciones = sum(movs, MovimientoCaja.Tipo.ANULACION.name());
+        BigDecimal esperado = caja.getMontoInicial().add(movimientos.saldoMovimientos(cajaId));
+        return new CierreCajaResumenDTO(caja.getId(), caja.getMontoInicial(), ventas, ingresos, retiros, anulaciones,
+                esperado, null, null, movs);
+    }
+
     @Transactional
-    public CajaDTO cerrar(Long cajaId, BigDecimal montoReal) {
+    public CierreCajaResumenDTO cerrar(Long cajaId, BigDecimal montoReal, Long usuarioId) {
         Caja caja = cajaAbierta(cajaId);
         if (montoReal == null || montoReal.signum() < 0) throw new IllegalArgumentException("Monto real invalido");
-        BigDecimal esperado = caja.getMontoInicial().add(movimientos.saldoMovimientos(cajaId));
-        caja.setMontoFinalEsperado(esperado); caja.setMontoFinalReal(montoReal);
-        caja.setDiferencia(montoReal.subtract(esperado)); caja.setFechaCierre(LocalDateTime.now()); caja.setEstado(Caja.Estado.CERRADA);
-        return toDTO(cajas.save(caja));
+        CierreCajaResumenDTO previo = resumenCierre(cajaId);
+        BigDecimal esperado = previo.esperado();
+        caja.setMontoFinalEsperado(esperado);
+        caja.setMontoFinalReal(montoReal);
+        caja.setDiferencia(montoReal.subtract(esperado));
+        caja.setFechaCierre(LocalDateTime.now());
+        caja.setEstado(Caja.Estado.CERRADA);
+        cajas.save(caja);
+        auditoria.registrar(usuarioId, "CERRAR", "CAJA", cajaId,
+                "Esperado " + esperado + " · Contado " + montoReal + " · Diferencia " + caja.getDiferencia());
+        return new CierreCajaResumenDTO(caja.getId(), caja.getMontoInicial(), previo.totalVentas(), previo.totalIngresos(),
+                previo.totalRetiros(), previo.totalAnulaciones(), esperado, montoReal, caja.getDiferencia(), previo.movimientos());
+    }
+
+    /** @deprecated usar {@link #cerrar(Long, BigDecimal, Long)} */
+    @Transactional
+    public CajaDTO cerrar(Long cajaId, BigDecimal montoReal) {
+        CierreCajaResumenDTO resumen = cerrar(cajaId, montoReal, null);
+        return new CajaDTO(resumen.cajaId(), null, null, null, LocalDateTime.now(), resumen.montoInicial(),
+                resumen.esperado(), resumen.real(), resumen.diferencia(), "CERRADA");
     }
 
     @Transactional(readOnly = true)
@@ -61,13 +99,25 @@ public class CajaService {
         return movimientos.findByCajaIdOrderByFechaDesc(cajaId).stream().map(this::movimientoDTO).toList();
     }
 
+    private BigDecimal sum(List<MovimientoCajaDTO> movs, String tipo) {
+        return movs.stream().filter(m -> tipo.equals(m.tipo())).map(MovimientoCajaDTO::monto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private Caja cajaAbierta(Long id) {
         Caja caja = cajas.findById(id).orElseThrow(() -> new IllegalArgumentException("Caja inexistente"));
         if (caja.getEstado() != Caja.Estado.ABIERTA) throw new IllegalStateException("La caja esta cerrada");
         return caja;
     }
-    private CajaDTO toDTO(Caja c) { return new CajaDTO(c.getId(), c.getUsuario().getId(), c.getUsuario().getNombre()+" "+c.getUsuario().getApellido(),
-            c.getFechaApertura(), c.getFechaCierre(), c.getMontoInicial(), c.getMontoFinalEsperado(), c.getMontoFinalReal(), c.getDiferencia(), c.getEstado().name()); }
-    private MovimientoCajaDTO movimientoDTO(MovimientoCaja m) { return new MovimientoCajaDTO(m.getId(), m.getFecha(), m.getTipo().name(),
-            m.getMonto(), m.getDescripcion(), m.getVenta() == null ? null : m.getVenta().getId()); }
+
+    private CajaDTO toDTO(Caja c) {
+        return new CajaDTO(c.getId(), c.getUsuario().getId(), c.getUsuario().getNombre() + " " + c.getUsuario().getApellido(),
+                c.getFechaApertura(), c.getFechaCierre(), c.getMontoInicial(), c.getMontoFinalEsperado(),
+                c.getMontoFinalReal(), c.getDiferencia(), c.getEstado().name());
+    }
+
+    private MovimientoCajaDTO movimientoDTO(MovimientoCaja m) {
+        return new MovimientoCajaDTO(m.getId(), m.getFecha(), m.getTipo().name(),
+                m.getMonto(), m.getDescripcion(), m.getVenta() == null ? null : m.getVenta().getId());
+    }
 }

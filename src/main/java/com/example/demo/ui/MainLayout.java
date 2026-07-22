@@ -66,8 +66,9 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         VerticalLayout navigation = new VerticalLayout(
                 link("Productos", VaadinIcon.PACKAGE, ProductosView.class),
                 personasNav,
-                link("Punto de venta", VaadinIcon.CART, VentasView.class),
-                link("Caja", VaadinIcon.CASH, CajaView.class));
+                link("Punto de venta", VaadinIcon.CART, VentasView.class));
+        if (UserSession.isAdmin() || can(Permiso.GESTIONAR_CAJA))
+            navigation.add(link("Caja", VaadinIcon.CASH, CajaView.class));
         if (stockNav != null) navigation.add(stockNav);
         if (devolucionesHabilitadas && (UserSession.isAdmin() || can(Permiso.REALIZAR_DEVOLUCIONES)))
             navigation.add(link("Devoluciones", VaadinIcon.ROTATE_LEFT, DevolucionesView.class));
@@ -154,6 +155,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
     private boolean hasAccess(String path) {
         if (SUPER_ADMIN_ROUTES.contains(path)) return UserSession.isSuperAdmin();
         if (Set.of("proveedores", "compras").contains(path)) return UserSession.isAdmin() || can(Permiso.REGISTRAR_COMPRAS);
+        if ("caja".equals(path)) return UserSession.isAdmin() || can(Permiso.GESTIONAR_CAJA);
         if ("inventario".equals(path)) return UserSession.isAdmin() || can(Permiso.AJUSTAR_STOCK);
         if ("lotes".equals(path)) return controlarVencimientos && (UserSession.isAdmin() || can(Permiso.AJUSTAR_STOCK));
         if ("devoluciones".equals(path)) return devolucionesHabilitadas && (UserSession.isAdmin() || can(Permiso.REALIZAR_DEVOLUCIONES));

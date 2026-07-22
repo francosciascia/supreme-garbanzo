@@ -92,6 +92,11 @@ vaadin-app-layout::part(drawer) { overflow-x: hidden; }
 .metric-card { background: var(--lumo-base-color); border: 1px solid var(--lumo-contrast-10pct); border-radius: 14px; padding: 1.25rem; box-shadow: 0 4px 18px #0f172a0d; }
 .metric-card span { color: var(--lumo-secondary-text-color); }
 .metric-card h3 { margin: .45rem 0 0; font-size: 1.65rem; }
+.alerts-panel { gap: .5rem; margin-bottom: 1rem; }
+.alert-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-radius: 10px; border: 1px solid var(--lumo-contrast-10pct); background: var(--lumo-base-color); }
+.alert-alta { border-left: 4px solid var(--lumo-error-color); }
+.alert-media { border-left: 4px solid var(--lumo-warning-color, #ea580c); }
+.alert-baja { border-left: 4px solid var(--lumo-primary-color); }
 .report-summary { color: var(--lumo-secondary-text-color); margin: 0 0 var(--lumo-space-m); }
 .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--lumo-space-l); width: 100%; }
 .chart-panel { box-sizing: border-box; padding: var(--lumo-space-l); background: var(--lumo-base-color); border: 1px solid var(--lumo-contrast-10pct); border-radius: var(--lumo-border-radius-l); }

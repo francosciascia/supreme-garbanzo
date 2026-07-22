@@ -1,18 +1,24 @@
 package com.example.demo.ui;
 
+import com.example.demo.dto.AlertaOperativaDTO;
 import com.example.demo.dto.ProductoDTO;
 import com.example.demo.models.Venta;
+import com.example.demo.services.AlertasService;
 import com.example.demo.services.ClienteService;
-import com.example.demo.services.ProductoService;
-import com.example.demo.services.VentaService;
 import com.example.demo.services.LoteService;
+import com.example.demo.services.ProductoService;
 import com.example.demo.services.ReglasOperativasService;
+import com.example.demo.services.VentaService;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
@@ -27,7 +33,7 @@ public class DashboardView extends VerticalLayout {
     private static final NumberFormat CURRENCY = NumberFormat.getCurrencyInstance(Locale.of("es", "AR"));
 
     public DashboardView(ProductoService productoService, ClienteService clienteService, VentaService ventaService,
-                         LoteService loteService, ReglasOperativasService reglasService) {
+                         LoteService loteService, ReglasOperativasService reglasService, AlertasService alertasService) {
         addClassName("content-view");
         setSizeFull();
         List<ProductoDTO> products = productoService.listar();
@@ -44,6 +50,26 @@ public class DashboardView extends VerticalLayout {
                 metric("Vencen en " + expirationDays + " días", loteService.proximosAVencer(expirationDays).size()),
                 metric("Clientes", clienteService.listar().size()));
 
+        VerticalLayout alertasPanel = new VerticalLayout();
+        alertasPanel.setPadding(false);
+        alertasPanel.setSpacing(false);
+        alertasPanel.addClassName("alerts-panel");
+        List<AlertaOperativaDTO> alertas = alertasService.resumen();
+        if (alertas.isEmpty()) {
+            alertasPanel.add(new Paragraph("Sin alertas operativas por ahora."));
+        } else {
+            for (AlertaOperativaDTO alerta : alertas) {
+                Div row = new Div();
+                row.addClassName("alert-item");
+                row.addClassName("alert-" + alerta.severidad().toLowerCase(Locale.ROOT));
+                Span text = new Span(alerta.mensaje());
+                Button go = new Button("Ver", e -> UI.getCurrent().navigate(alerta.enlace()));
+                go.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+                row.add(text, go);
+                alertasPanel.add(row);
+            }
+        }
+
         Grid<ProductoDTO> stockGrid = new Grid<>(ProductoDTO.class, false);
         stockGrid.addColumn(ProductoDTO::nombre).setHeader("Producto").setAutoWidth(true);
         stockGrid.addColumn(ProductoDTO::stock).setHeader("Stock");
@@ -51,7 +77,7 @@ public class DashboardView extends VerticalLayout {
                 .setHeader("Categoría").setAutoWidth(true);
         stockGrid.setItems(products.stream().filter(product -> product.stock() != null && product.stock() <= product.stockMinimo()).toList());
         stockGrid.setHeight("280px");
-        add(new H2("Resumen general"), cards, new H3("Productos con stock bajo"), stockGrid);
+        add(new H2("Resumen general"), cards, new H3("Alertas"), alertasPanel, new H3("Productos con stock bajo"), stockGrid);
     }
 
     private Div metric(String label, Object value) {
