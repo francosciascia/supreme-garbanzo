@@ -1,93 +1,20 @@
 # Supreme Garbanzo
 
-Sistema de Gestión Comercial desarrollado con Java, Spring Boot, PostgreSQL y Vaadin.
+Sistema integral de gestión comercial desarrollado con **Java 21, Spring Boot, PostgreSQL y Vaadin**.
 
-## Características
+La aplicación permite administrar productos, categorías, clientes, proveedores, ventas, inventario, usuarios y reportes desde una interfaz web centralizada.
 
-- Gestión de productos
-- Gestión de categorías
-- Gestión de clientes
-- Gestión de proveedores
-- Gestión de ventas
-- Control de stock
-- Movimientos de inventario
-- Reportes
-- Autenticación JWT
-- Roles y permisos
-- Auditoría
-- Paginación y filtros
-- Validaciones
-- Manejo global de excepciones
+## Demo
 
-## Tecnologías
+**Aplicación desplegada:**
 
-- Java 21
-- Spring Boot
-- Spring Security
-- Spring Data JPA
-- Hibernate
-- PostgreSQL
-- Flyway
-- JWT
-- BCrypt
-- Vaadin
-- Maven
-- JUnit
-- Mockito
+https://supreme-garbanzo-1.onrender.com
 
-## Arquitectura
+> El servicio utiliza una instancia gratuita de Render. Si estuvo inactivo, el primer acceso puede tardar algunos segundos mientras la aplicación inicia.
 
-Controller
-↓
-Service
-↓
-Repository
-↓
-PostgreSQL
+### Usuarios de demostración
 
-## Capturas
+Contraseña para todas las cuentas:
 
-_(agregar imágenes de la aplicación)_
-
-## Instalación
-
-```bash
-git clone https://github.com/francosciascia/supreme-garbanzo.git
-cd supreme-garbanzo
-```
-
-Configurar:
-
-```
-application-dev.properties
-```
-
-Luego:
-
-```bash
-./mvnw spring-boot:run
-```
-
-## Funcionalidades
-
-- CRUD de productos
-- Gestión de inventario
-- Registro de ventas
-- Actualización automática de stock
-- Reportes
-- Seguridad con JWT
-- Roles
-- Auditoría
-
-## Testing
-
-```bash
-./mvnw test
-```
-
-## Roadmap
-
-- Exportación PDF
-- Dashboard
-- Estadísticas avanzadas
-- Notificaciones
+```text
+123456
