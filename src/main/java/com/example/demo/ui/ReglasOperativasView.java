@@ -28,7 +28,7 @@ public class ReglasOperativasView extends VerticalLayout {
         setWidthFull();
         ReglasOperativasDTO current = service.obtener();
 
-        ComboBox<PresetRubro> preset = new ComboBox<>("Perfil por rubro");
+        ComboBox<PresetRubro> preset = new ComboBox<>("Plantilla por rubro");
         preset.setItems(PresetRubro.disponibles());
         preset.setItemLabelGenerator(PresetRubro::nombre);
         preset.setWidthFull();
@@ -39,21 +39,21 @@ public class ReglasOperativasView extends VerticalLayout {
             if (event.getValue() == null) presetDetail.setText("");
             else presetDetail.setText(event.getValue().descripcion());
         });
-        Button applyPreset = new Button("Aplicar preset", event -> {
+        Button applyPreset = new Button("Aplicar plantilla", event -> {
             if (preset.getValue() == null) {
-                ViewSupport.error(new IllegalArgumentException("Seleccioná un perfil de rubro"));
+                ViewSupport.error(new IllegalArgumentException("Seleccioná una plantilla de rubro"));
                 return;
             }
             PresetRubro chosen = preset.getValue();
             ViewSupport.confirm(
-                    "Aplicar preset",
+                    "Aplicar plantilla",
                     "Aplicar",
                     "Se van a reemplazar las reglas actuales por el perfil \"" + chosen.nombre()
                             + "\" y se actualizará el rubro del comercio. ¿Continuar?",
                     () -> {
                         try {
                             presets.aplicar(chosen, UserSession.getUser().id());
-                            ViewSupport.success("Preset aplicado. Recargá o reingresá para actualizar el menú.");
+                            ViewSupport.success("Plantilla aplicada. Recargá o reingresá para actualizar el menú.");
                             getUI().ifPresent(ui -> ui.getPage().reload());
                         } catch (RuntimeException exception) {
                             ViewSupport.error(exception);
@@ -61,7 +61,7 @@ public class ReglasOperativasView extends VerticalLayout {
                     },
                     false);
         });
-        Details presetsSection = section("Presets por rubro",
+        Details presetsSection = section("Plantillas por rubro",
                 "Atajo para arrancar según el tipo de negocio. No reemplaza la personalización fina de abajo.",
                 preset, presetHelp, presetDetail, applyPreset);
         presetsSection.setOpened(true);
@@ -95,6 +95,15 @@ public class ReglasOperativasView extends VerticalLayout {
         Details afterSale = section("Devoluciones y anulaciones", "Controla correcciones posteriores a una venta confirmada.",
                 returnsEnabled, returnDays, ownerCancel);
 
+        Checkbox cashRound = check("Redondear total en efectivo al peso", "Ajusta el total al entero más cercano al cobrar en efectivo.", current.redondeoEfectivo());
+        Checkbox cancelReason = check("Exigir motivo al anular una venta", "Obliga a escribir por qué se anula.", current.motivoAnulacionObligatorio());
+        BigDecimalField minMargin = new BigDecimalField("Margen mínimo al cargar productos (%)");
+        minMargin.setValue(current.margenMinimoPct() == null ? BigDecimal.ZERO : current.margenMinimoPct());
+        minMargin.setHelperText("0 = sin control. Bloquea guardar productos por debajo del margen.");
+        Checkbox autoTicket = check("Abrir ticket automáticamente al cobrar", "Abre el comprobante en una pestaña nueva después de cada venta.", current.imprimirTicketAuto());
+        Details ops = section("Operación avanzada", "Ajustes finos de cobro, anulación y márgenes.",
+                cashRound, cancelReason, form(minMargin), autoTicket);
+
         Checkbox expiration = check("Controlar lotes y vencimientos", "Activar para alimentos, bebidas u otros productos con caducidad.", current.controlarVencimientos());
         Checkbox blockExpired = check("Bloquear la venta de mercadería vencida", "Si se desactiva, el sistema sólo mostrará la advertencia.", current.bloquearVentaVencidos());
         IntegerField expirationDays = new IntegerField("Avisar con anticipación (días)");
@@ -114,7 +123,9 @@ public class ReglasOperativasView extends VerticalLayout {
                         maxDiscount.getValue(), manualPrice.getValue(), defaultPayment.getValue(), credit.getValue(),
                         defaultLimit.getValue() == null ? BigDecimal.ZERO : defaultLimit.getValue(), ownerCancel.getValue(),
                         returnsEnabled.getValue(), returnDays.getValue(), expiration.getValue(), blockExpired.getValue(),
-                        expirationDays.getValue()), UserSession.getUser().id());
+                        expirationDays.getValue(), cashRound.getValue(), cancelReason.getValue(),
+                        minMargin.getValue() == null ? BigDecimal.ZERO : minMargin.getValue(), autoTicket.getValue()),
+                        UserSession.getUser().id());
                 ViewSupport.success("Reglas del negocio actualizadas");
             } catch (RuntimeException exception) {
                 ViewSupport.error(exception);
@@ -126,7 +137,7 @@ public class ReglasOperativasView extends VerticalLayout {
         HorizontalLayout actions = new HorizontalLayout(save, back);
         add(ViewSupport.header("Reglas del negocio"),
                 new Paragraph("Estas opciones cambian el comportamiento diario sin requerir modificaciones de código."),
-                presetsSection, sales, clients, afterSale, inventory, actions);
+                presetsSection, sales, clients, afterSale, ops, inventory, actions);
     }
 
     private Checkbox check(String label, String helper, boolean value) {

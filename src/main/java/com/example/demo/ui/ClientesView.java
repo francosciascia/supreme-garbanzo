@@ -5,12 +5,14 @@ import com.example.demo.dto.ClienteDTO;
 import com.example.demo.services.ClienteService;
 import com.example.demo.services.CuentaCorrienteService;
 import com.example.demo.services.EmpleadoService;
+import com.example.demo.services.ExportService;
 import com.example.demo.models.PermisoUsuario.Permiso;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -21,7 +23,10 @@ import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -37,7 +42,8 @@ public class ClientesView extends VerticalLayout {
     private final Grid<ClienteDTO> grid = new Grid<>(ClienteDTO.class, false);
     private final TextField search = new TextField();
 
-    public ClientesView(ClienteService service, CuentaCorrienteService cuentaService, EmpleadoService empleadoService) {
+    public ClientesView(ClienteService service, CuentaCorrienteService cuentaService, EmpleadoService empleadoService,
+                        ExportService exportService) {
         this.service = service;
         this.cuentaService = cuentaService;
         this.canManage = UserSession.isAdmin() || empleadoService.tiene(UserSession.getUser().id(), Permiso.ADMINISTRAR_CLIENTES);
@@ -45,6 +51,10 @@ public class ClientesView extends VerticalLayout {
         addClassName("content-view"); setSizeFull();
         Button add = new Button("Nuevo cliente", VaadinIcon.PLUS.create(), event -> openForm(null));
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY); add.setVisible(canManage);
+        Anchor export = new Anchor(new StreamResource("clientes.csv", () ->
+                new ByteArrayInputStream(exportService.clientesCsv().getBytes(StandardCharsets.UTF_8))), "Exportar CSV");
+        export.getElement().setAttribute("download", true);
+
         search.setPlaceholder("Buscar por nombre, DNI o email..."); search.setPrefixComponent(VaadinIcon.SEARCH.create());
         search.setValueChangeMode(ValueChangeMode.LAZY); search.addValueChangeListener(event -> refresh());
         grid.addColumn(client -> client.nombre() + " " + client.apellido()).setHeader("Cliente").setSortable(true).setAutoWidth(true);
@@ -55,7 +65,7 @@ public class ClientesView extends VerticalLayout {
         grid.addColumn(client -> client.activo() ? "Activo" : "Inactivo").setHeader("Estado");
         grid.addComponentColumn(this::actions).setHeader("Acciones").setAutoWidth(true);
         grid.setSizeFull();
-        add(ViewSupport.header("Gestión de clientes", add), search, grid); expand(grid); refresh();
+        add(ViewSupport.header("Gestión de clientes", export, add), search, grid); expand(grid); refresh();
     }
 
     private HorizontalLayout actions(ClienteDTO client) {

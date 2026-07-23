@@ -113,7 +113,7 @@ public class VentaController {
     }
 
     @PostMapping("/{id}/anular")
-    public VentaDTO anular(@PathVariable Long id) {
-        return VentaMapper.toDTO(ventaService.anular(id));
+    public VentaDTO anular(@PathVariable Long id, @RequestParam(required = false) String motivo) {
+        return VentaMapper.toDTO(ventaService.anular(id, motivo));
     }
 }

@@ -13,6 +13,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -28,6 +29,7 @@ public class CajaView extends VerticalLayout {
     private final CajaService service;
     private final H2 status = new H2();
     private final Grid<MovimientoCajaDTO> grid = new Grid<>(MovimientoCajaDTO.class, false);
+    private final Grid<CajaDTO> history = new Grid<>(CajaDTO.class, false);
 
     public CajaView(CajaService service) {
         this.service = service;
@@ -37,13 +39,37 @@ public class CajaView extends VerticalLayout {
         grid.addColumn(MovimientoCajaDTO::tipo).setHeader("Tipo");
         grid.addColumn(m -> MONEY.format(m.monto())).setHeader("Monto");
         grid.addColumn(MovimientoCajaDTO::descripcion).setHeader("Detalle");
+        history.addColumn(CajaDTO::id).setHeader("Caja");
+        history.addColumn(CajaDTO::usuario).setHeader("Usuario");
+        history.addColumn(CajaDTO::fechaApertura).setHeader("Apertura");
+        history.addColumn(CajaDTO::fechaCierre).setHeader("Cierre");
+        history.addColumn(c -> MONEY.format(c.montoInicial())).setHeader("Inicial");
+        history.addColumn(c -> c.esperado() == null ? "-" : MONEY.format(c.esperado())).setHeader("Esperado");
+        history.addColumn(c -> c.real() == null ? "-" : MONEY.format(c.real())).setHeader("Contado");
+        history.addColumn(c -> c.diferencia() == null ? "-" : MONEY.format(c.diferencia())).setHeader("Diferencia");
+
         Button open = new Button("Abrir caja", e -> abrir());
         Button income = new Button("Ingreso", e -> movimiento(MovimientoCaja.Tipo.INGRESO));
         Button withdrawal = new Button("Retiro", e -> movimiento(MovimientoCaja.Tipo.RETIRO));
         Button close = new Button("Cerrar caja", e -> cerrar());
         open.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        add(status, new HorizontalLayout(open, income, withdrawal, close), grid);
-        expand(grid);
+        VerticalLayout activa = new VerticalLayout(status, new HorizontalLayout(open, income, withdrawal, close), grid);
+        activa.setSizeFull();
+        activa.setPadding(false);
+        activa.expand(grid);
+        VerticalLayout historial = new VerticalLayout(new Paragraph("Cierres anteriores"), history);
+        historial.setSizeFull();
+        historial.setPadding(false);
+        historial.expand(history);
+        TabSheet tabs = new TabSheet();
+        tabs.setSizeFull();
+        tabs.add("Activa", activa);
+        tabs.add("Historial", historial);
+        tabs.addSelectedChangeListener(e -> {
+            if (tabs.getSelectedIndex() == 1) history.setItems(service.historialCerradas());
+        });
+        add(ViewSupport.header("Caja"), tabs);
+        expand(tabs);
         refresh();
     }
 
@@ -108,6 +134,7 @@ public class CajaView extends VerticalLayout {
                     CierreCajaResumenDTO closed = service.cerrar(c.id(), counted.getValue(), userId());
                     d.close();
                     refresh();
+                    history.setItems(service.historialCerradas());
                     ViewSupport.success("Caja cerrada. Diferencia: " + MONEY.format(closed.diferencia()));
                 } catch (RuntimeException ex) {
                     ViewSupport.error(ex);

@@ -12,7 +12,7 @@ import java.util.List;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Compra {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "proveedor_id") private Proveedor proveedor;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "proveedor_id") private Proveedor proveedor;
     @Column(nullable = false) private LocalDateTime fecha;
     @Column(name = "numero_comprobante") private String numeroComprobante;
     @Column(nullable = false, precision = 14, scale = 2) @Builder.Default private BigDecimal total = BigDecimal.ZERO;

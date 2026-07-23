@@ -36,6 +36,9 @@ public final class VentaMapper {
     }
 
     private static ItemVentaDTO itemToDTO(ItemVenta item) {
+        java.math.BigDecimal alicuota = item.getProducto() != null && item.getProducto().getAlicuotaIva() != null
+                ? item.getProducto().getAlicuotaIva()
+                : new java.math.BigDecimal("21");
         return new ItemVentaDTO(
                 item.getId(),
                 item.getProducto() != null ? item.getProducto().getId() : null,
@@ -46,7 +49,8 @@ public final class VentaMapper {
                         : java.math.BigDecimal.valueOf(item.getCantidad()),
                 item.getUnidadVenta().name(),
                 item.getPrecioUnitario(),
-                item.getSubtotal()
+                item.getSubtotal(),
+                alicuota
         );
     }
 

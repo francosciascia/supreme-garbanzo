@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Tests unitarios para ProductoService
@@ -34,6 +35,12 @@ class ProductoServiceTest {
     @Mock
     private CategoriaRepository categoriaRepository;
 
+    @Mock
+    private ReglasOperativasService reglas;
+
+    @Mock
+    private HistorialCostoService historialCosto;
+
     @InjectMocks
     private ProductoService productoService;
 
@@ -42,6 +49,10 @@ class ProductoServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(reglas.obtener()).thenReturn(new com.example.demo.dto.ReglasOperativasDTO(
+                true, false, false, new BigDecimal("20"), false, "EFECTIVO", false, BigDecimal.ZERO,
+                true, true, 30, true, true, 30, false, false, BigDecimal.ZERO, true));
+
         productoMock = Producto.builder()
                 .id(1L)
                 .nombre("Laptop")
@@ -50,6 +61,7 @@ class ProductoServiceTest {
                 .vencimiento(false)
                 .costo(new BigDecimal("500.00"))
                 .precioVenta(new BigDecimal("800.00"))
+                .unidadVenta(Producto.UnidadVenta.UNIDAD)
                 .build();
 
         productoDTOMock = new ProductoCUDTO(

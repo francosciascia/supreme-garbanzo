@@ -99,6 +99,11 @@ public class CajaService {
         return movimientos.findByCajaIdOrderByFechaDesc(cajaId).stream().map(this::movimientoDTO).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<CajaDTO> historialCerradas() {
+        return cajas.findByEstadoOrderByFechaCierreDesc(Caja.Estado.CERRADA).stream().map(this::toDTO).toList();
+    }
+
     private BigDecimal sum(List<MovimientoCajaDTO> movs, String tipo) {
         return movs.stream().filter(m -> tipo.equals(m.tipo())).map(MovimientoCajaDTO::monto)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

@@ -1,38 +1,22 @@
 package com.example.demo.ui;
 
-import com.example.demo.dto.ClienteDTO;
-import com.example.demo.dto.ItemVentaCreateDTO;
-import com.example.demo.dto.ProductoDTO;
-import com.example.demo.dto.VentaCreateDTO;
 import com.example.demo.dto.VentaDTO;
 import com.example.demo.models.PermisoUsuario.Permiso;
-import com.example.demo.services.CajaService;
-import com.example.demo.services.ClienteService;
-import com.example.demo.services.EmpleadoService;
-import com.example.demo.services.ProductoService;
-import com.example.demo.services.ReglasOperativasService;
-import com.example.demo.services.VentaService;
-import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.KeyModifier;
+import com.example.demo.services.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -71,6 +55,8 @@ public class VentasView extends VerticalLayout {
         setSizeFull();
         Button add = new Button("Nueva venta", VaadinIcon.PLUS.create(), event -> openForm());
         add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button pos = new Button("POS pantalla completa", VaadinIcon.EXPAND_FULL.create(),
+                event -> getUI().ifPresent(ui -> ui.navigate(PosView.class)));
         search.setPlaceholder("Buscar por venta, cliente, DNI o producto...");
         search.setPrefixComponent(VaadinIcon.SEARCH.create());
         search.setValueChangeMode(ValueChangeMode.LAZY);
@@ -87,7 +73,7 @@ public class VentasView extends VerticalLayout {
         grid.addColumn(VentaDTO::estado).setHeader("Estado");
         grid.addComponentColumn(this::saleActions).setHeader("Acciones");
         grid.setSizeFull();
-        add(ViewSupport.header("Gestión de ventas", add), search, grid, pagination);
+        add(ViewSupport.header("Gestión de ventas", pos, add), search, grid, pagination);
         expand(grid);
         refresh();
     }
@@ -96,175 +82,50 @@ public class VentasView extends VerticalLayout {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Nueva venta");
         dialog.setWidth("min(760px, 95vw)");
-        var reglas = reglasService.obtener();
-        boolean allowWithoutStock = reglas.permitirVentaSinStock();
-        List<ProductoDTO> catalog = productoService.listar().stream()
-                .filter(value -> allowWithoutStock || value.stock() != null && value.stock() > 0)
-                .toList();
-
-        ComboBox<ClienteDTO> client = new ComboBox<>(reglas.requerirClienteVenta() ? "Cliente" : "Cliente (opcional)");
-        client.setItems(clienteService.listar());
-        client.setItemLabelGenerator(value -> value.nombre() + " " + value.apellido() + " · DNI " + value.dni());
-        client.setClearButtonVisible(!reglas.requerirClienteVenta());
-        client.setWidthFull();
-        if (reglas.requerirClienteVenta()) client.setRequired(true);
-
-        TextField barcode = new TextField("Escanear código de barras");
-        barcode.setPlaceholder("Escaneá y Enter · cobrá con Ctrl+Enter");
-        barcode.setWidthFull();
-        ComboBox<String> payment = new ComboBox<>("Medio de pago");
-        List<String> medios = new ArrayList<>(List.of("EFECTIVO", "DEBITO", "CREDITO", "TRANSFERENCIA"));
-        if (reglas.fiadoHabilitado()) medios.add("CUENTA_CORRIENTE");
-        payment.setItems(medios);
-        String defaultPayment = medios.contains(reglas.medioPagoPredeterminado())
-                ? reglas.medioPagoPredeterminado() : "EFECTIVO";
-        payment.setValue(defaultPayment);
-        BigDecimalField received = new BigDecimalField("Monto recibido");
-        BigDecimalField discount = new BigDecimalField("Descuento");
-        discount.setValue(BigDecimal.ZERO);
-        discount.setReadOnly(!canDiscount);
-        Paragraph change = new Paragraph("");
-        VerticalLayout itemContainer = new VerticalLayout();
-        itemContainer.setPadding(false);
-        List<SaleItemRow> rows = new ArrayList<>();
-        H3 total = new H3("Total: " + CURRENCY.format(BigDecimal.ZERO));
-
-        Runnable updateTotal = () -> {
-            BigDecimal subtotal = rows.stream().map(SaleItemRow::subtotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add)
-                    .subtract(discount.getValue() == null ? BigDecimal.ZERO : discount.getValue())
-                    .max(BigDecimal.ZERO);
-            total.setText("Total: " + CURRENCY.format(subtotal));
-            if ("EFECTIVO".equals(payment.getValue()) && received.getValue() != null) {
-                BigDecimal vuelto = received.getValue().subtract(subtotal);
-                change.setText(vuelto.signum() < 0
-                        ? "Falta: " + CURRENCY.format(vuelto.abs())
-                        : "Vuelto: " + CURRENCY.format(vuelto));
-            } else {
-                change.setText("");
-            }
-        };
-        Runnable focusBarcode = () -> getUI().ifPresent(ui -> ui.getPage().executeJs(
-                "setTimeout(()=>$0.focus(),50)", barcode.getElement()));
-
-        Button addItem = new Button("Agregar producto", VaadinIcon.PLUS.create());
-        addItem.addClickListener(event -> addItemRow(itemContainer, rows, catalog, updateTotal));
-        barcode.addKeyPressListener(Key.ENTER, event -> productoService.buscarPorCodigo(barcode.getValue()).ifPresentOrElse(product -> {
-            SaleItemRow existing = rows.stream().filter(r -> product.equals(r.product.getValue())).findFirst().orElse(null);
-            if (existing != null) {
-                existing.quantity.setValue(existing.quantity.getValue() == null
-                        ? BigDecimal.ONE : existing.quantity.getValue().add(BigDecimal.ONE));
-            } else {
-                addItemRow(itemContainer, rows, catalog, updateTotal).product.setValue(product);
-            }
-            barcode.clear();
-            updateTotal.run();
-            focusBarcode.run();
-        }, () -> ViewSupport.error(new IllegalArgumentException("Código no encontrado"))));
-        discount.addValueChangeListener(event -> updateTotal.run());
-        received.addValueChangeListener(event -> updateTotal.run());
-        payment.addValueChangeListener(event -> updateTotal.run());
-
-        dialog.add(new VerticalLayout(client, barcode, addItem, itemContainer,
-                new HorizontalLayout(payment, received, discount), total, change));
-        addItemRow(itemContainer, rows, catalog, updateTotal);
-
-        Runnable clearCart = () -> {
-            rows.clear();
-            itemContainer.removeAll();
-            client.clear();
-            received.clear();
-            discount.setValue(BigDecimal.ZERO);
-            payment.setValue(defaultPayment);
-            addItemRow(itemContainer, rows, catalog, updateTotal);
-            updateTotal.run();
-            focusBarcode.run();
-        };
-
-        Button cancel = new Button("Cancelar", event -> dialog.close());
-        Button save = new Button("Crear venta", event -> {
-            if (reglas.requerirClienteVenta() && client.getValue() == null) {
-                ViewSupport.error(new IllegalArgumentException("Seleccioná un cliente"));
-                return;
-            }
-            if (rows.isEmpty() || rows.stream().anyMatch(row -> row.product.getValue() == null || row.quantity.isEmpty())) {
-                ViewSupport.error(new IllegalArgumentException("Seleccioná un producto y una cantidad en cada ítem"));
-                return;
-            }
-            try {
-                List<ItemVentaCreateDTO> items = rows.stream().map(row -> new ItemVentaCreateDTO(
-                        row.product.getValue().id(), row.baseQuantity(), canManualPrice ? row.price.getValue() : null)).toList();
-                var caja = cajaService.activa(UserSession.getUser().id());
-                if (reglas.cajaObligatoria() && caja.isEmpty())
-                    throw new IllegalStateException("Abrí la caja antes de vender");
-                var sale = service.crear(new VentaCreateDTO(client.getValue() == null ? null : client.getValue().id(), items,
-                        payment.getValue(), received.getValue(), discount.getValue(),
-                        caja.map(com.example.demo.dto.CajaDTO::id).orElse(null), UserSession.getUser().id()));
-                refresh();
-                ViewSupport.success("Venta creada");
-                getUI().ifPresent(ui -> ui.getPage().open("ticket/" + sale.getId(), "_blank"));
-                clearCart.run();
-            } catch (RuntimeException exception) {
-                ViewSupport.error(exception);
-            }
-        });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        save.addClickShortcut(Key.ENTER, KeyModifier.CONTROL);
-        dialog.getFooter().add(cancel, save);
+        dialog.add(new NuevaVentaPanel(service, productoService, clienteService, cajaService, reglasService,
+                canDiscount, canManualPrice, sale -> refresh(), dialog::close));
         dialog.open();
-        focusBarcode.run();
-    }
-
-    private SaleItemRow addItemRow(VerticalLayout container, List<SaleItemRow> rows, List<ProductoDTO> catalog,
-                                   Runnable updateTotal) {
-        ComboBox<ProductoDTO> product = new ComboBox<>();
-        product.setPlaceholder("Producto");
-        product.setItems(catalog);
-        product.setItemLabelGenerator(value -> value.nombre() + " · " + CURRENCY.format(value.precioVenta()) + " · stock " + value.stock());
-        product.setWidthFull();
-        BigDecimalField quantity = new BigDecimalField();
-        quantity.setPlaceholder("Cantidad / kg");
-        quantity.setValue(BigDecimal.ONE);
-        quantity.setWidth("150px");
-        BigDecimalField price = new BigDecimalField();
-        price.setPlaceholder("Precio");
-        price.setWidth("150px");
-        price.setReadOnly(!canManualPrice);
-        Button remove = new Button(VaadinIcon.TRASH.create());
-        remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
-        HorizontalLayout layout = new HorizontalLayout(product, quantity, price, remove);
-        layout.setWidthFull();
-        layout.expand(product);
-        SaleItemRow row = new SaleItemRow(product, quantity, price, layout);
-        rows.add(row);
-        container.add(layout);
-        product.addValueChangeListener(event -> {
-            price.clear();
-            updateTotal.run();
-        });
-        quantity.addValueChangeListener(event -> updateTotal.run());
-        price.addValueChangeListener(event -> updateTotal.run());
-        remove.addClickListener(event -> {
-            rows.remove(row);
-            container.remove(layout);
-            updateTotal.run();
-        });
-        return row;
     }
 
     private HorizontalLayout saleActions(VentaDTO sale) {
         Button ticket = new Button(VaadinIcon.PRINT.create(), e -> ticket(sale));
-        Button cancel = new Button(VaadinIcon.CLOSE.create(), e -> ViewSupport.confirm("¿Anular la venta " + sale.numeroComprobante() + "?", () -> {
+        Button cancel = new Button(VaadinIcon.CLOSE.create(), e -> anular(sale));
+        cancel.setEnabled("CONFIRMADA".equals(sale.estado()) && canCancel);
+        return new HorizontalLayout(ticket, cancel);
+    }
+
+    private void anular(VentaDTO sale) {
+        boolean requireReason = reglasService.obtener().motivoAnulacionObligatorio();
+        if (!requireReason) {
+            ViewSupport.confirm("¿Anular la venta " + sale.numeroComprobante() + "?", () -> doAnular(sale.id(), null));
+            return;
+        }
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Anular venta");
+        TextArea reason = new TextArea("Motivo");
+        reason.setWidthFull();
+        Button accept = new Button("Anular", e -> {
             try {
-                service.anular(sale.id());
-                refresh();
-                ViewSupport.success("Venta anulada y stock repuesto");
+                doAnular(sale.id(), reason.getValue());
+                dialog.close();
             } catch (RuntimeException ex) {
                 ViewSupport.error(ex);
             }
-        }));
-        cancel.setEnabled("CONFIRMADA".equals(sale.estado()) && canCancel);
-        return new HorizontalLayout(ticket, cancel);
+        });
+        accept.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        dialog.add(reason);
+        dialog.getFooter().add(new Button("Cancelar", e -> dialog.close()), accept);
+        dialog.open();
+    }
+
+    private void doAnular(Long id, String motivo) {
+        try {
+            service.anular(id, motivo);
+            refresh();
+            ViewSupport.success("Venta anulada y stock repuesto");
+        } catch (RuntimeException ex) {
+            ViewSupport.error(ex);
+        }
     }
 
     private void ticket(VentaDTO sale) {
@@ -299,31 +160,5 @@ public class VentasView extends VerticalLayout {
     private void changePageSize(int size) {
         pageSize = size;
         resetAndRefresh();
-    }
-
-    private record SaleItemRow(ComboBox<ProductoDTO> product, BigDecimalField quantity, BigDecimalField price, HorizontalLayout layout) {
-        int baseQuantity() {
-            if (product.getValue() == null || quantity.getValue() == null) throw new IllegalArgumentException("Cantidad incompleta");
-            if (quantity.getValue().signum() <= 0) throw new IllegalArgumentException("La cantidad debe ser mayor a cero");
-            try {
-                return ("PESO".equals(product.getValue().unidadVenta()) ? quantity.getValue().movePointRight(3) : quantity.getValue()).intValueExact();
-            } catch (ArithmeticException ex) {
-                throw new IllegalArgumentException("Usá unidades enteras o hasta 3 decimales para el peso");
-            }
-        }
-
-        BigDecimal subtotal() {
-            if (product.getValue() == null || quantity.getValue() == null) return BigDecimal.ZERO;
-            ProductoDTO value = product.getValue();
-            if (canUse(price)) return price.getValue().multiply(quantity.getValue());
-            BigDecimal unit = value.cantidadMinimaPromo() != null && value.precioPromocional() != null
-                    && quantity.getValue().compareTo(BigDecimal.valueOf(value.cantidadMinimaPromo())) >= 0
-                    ? value.precioPromocional() : value.precioVenta();
-            return unit.multiply(quantity.getValue());
-        }
-
-        private boolean canUse(BigDecimalField field) {
-            return !field.isReadOnly() && field.getValue() != null;
-        }
     }
 }

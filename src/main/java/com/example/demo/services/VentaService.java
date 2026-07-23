@@ -192,6 +192,13 @@ public class VentaService {
             BigDecimal maximo = bruto.multiply(reglas.descuentoMaximo()).movePointLeft(2);
             if (venta.getDescuento().compareTo(maximo) > 0) throw new IllegalArgumentException("El descuento supera el máximo permitido");
         }
+        if (venta.getMedioPago() == Venta.MedioPago.EFECTIVO && reglas != null && reglas.redondeoEfectivo()) {
+            BigDecimal redondeado = venta.getTotal().setScale(0, java.math.RoundingMode.HALF_UP);
+            if (redondeado.compareTo(venta.getTotal()) != 0) {
+                venta.setTotalForzado(redondeado);
+                venta.setTotal(redondeado);
+            }
+        }
         if (venta.getMedioPago() == Venta.MedioPago.EFECTIVO) {
             BigDecimal recibido = ventaDTO.montoRecibido() == null ? venta.getTotal() : ventaDTO.montoRecibido();
             if (recibido.compareTo(venta.getTotal()) < 0) throw new IllegalArgumentException("El monto recibido no alcanza");
@@ -261,10 +268,18 @@ public class VentaService {
 
     @Transactional
     public Venta anular(Long ventaId) {
+        return anular(ventaId, null);
+    }
+
+    @Transactional
+    public Venta anular(Long ventaId, String motivo) {
         Venta venta = ventaRepository.findById(ventaId)
                 .orElseThrow(() -> new IllegalArgumentException("Venta no existe: " + ventaId));
 
         if (venta.getEstado() == Venta.Estado.ANULADA) throw new IllegalStateException("La venta ya esta anulada");
+        var reglas = reglasOperativasService == null ? null : reglasOperativasService.obtener();
+        if (reglas != null && reglas.motivoAnulacionObligatorio() && (motivo == null || motivo.isBlank()))
+            throw new IllegalArgumentException("Indicá el motivo de la anulación");
         for (ItemVenta iv : venta.getItems()) {
             Producto p = iv.getProducto();
             int anterior = p.getStock();
@@ -273,6 +288,7 @@ public class VentaService {
             registrarStock(p, iv.getCantidad(), anterior, MovimientoStock.Tipo.ANULACION_VENTA, "VENTA-" + ventaId, venta.getUsuario());
         }
         venta.setEstado(Venta.Estado.ANULADA);
+        if (motivo != null && !motivo.isBlank()) venta.setMotivoAnulacion(motivo.trim());
         if (venta.getCaja() != null && venta.getMedioPago() == Venta.MedioPago.EFECTIVO && movimientoCajaRepository != null) {
             movimientoCajaRepository.save(MovimientoCaja.builder().caja(venta.getCaja()).venta(venta).fecha(LocalDateTime.now())
                     .tipo(MovimientoCaja.Tipo.ANULACION).monto(venta.getTotal()).descripcion("Anulacion " + venta.getNumeroComprobante()).build());

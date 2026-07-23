@@ -23,6 +23,11 @@ public class ConfiguracionComercioService {
         return dto(repository.findById(1L).orElseGet(this::nueva));
     }
 
+    @Transactional(readOnly = true)
+    public boolean setupCompletado() {
+        return obtener().setupCompletado();
+    }
+
     @Transactional
     public ConfiguracionComercioDTO guardar(ConfiguracionComercioDTO value) {
         if (value.nombre() == null || value.nombre().isBlank())
@@ -56,20 +61,31 @@ public class ConfiguracionComercioService {
         c.setMoneda(value.moneda());
         c.setZonaHoraria(clean(value.zonaHoraria()));
         c.setMostrarDatosFiscalesTicket(value.mostrarDatosFiscalesTicket());
+        c.setSetupCompletado(value.setupCompletado());
+        c.setMostrarIvaTicket(value.mostrarIvaTicket());
         return dto(repository.save(c));
+    }
+
+    @Transactional
+    public void marcarSetupCompletado() {
+        ConfiguracionComercio c = repository.findById(1L).orElseGet(this::nueva);
+        c.setSetupCompletado(true);
+        repository.save(c);
     }
 
     private ConfiguracionComercio nueva() {
         return ConfiguracionComercio.builder().id(1L).nombre("Franco").colorPrimario("#2563EB")
                 .colorSecundario("#0F172A").anchoTicket(80).moneda("ARS")
-                .zonaHoraria("America/Argentina/Buenos_Aires").mostrarDatosFiscalesTicket(true).build();
+                .zonaHoraria("America/Argentina/Buenos_Aires").mostrarDatosFiscalesTicket(true)
+                .setupCompletado(false).mostrarIvaTicket(false).build();
     }
 
     private ConfiguracionComercioDTO dto(ConfiguracionComercio c) {
         return new ConfiguracionComercioDTO(c.getNombre(), c.getRubro(), c.getSlogan(), c.getRazonSocial(),
                 c.getCuit(), c.getCondicionIva(), c.getDireccion(), c.getTelefono(), c.getEmail(), c.getWhatsapp(),
                 c.getSitioWeb(), c.getLogoUrl(), c.getColorPrimario(), c.getColorSecundario(), c.getEncabezadoTicket(),
-                c.getMensajeTicket(), c.getAnchoTicket(), c.getMoneda(), c.getZonaHoraria(), c.isMostrarDatosFiscalesTicket());
+                c.getMensajeTicket(), c.getAnchoTicket(), c.getMoneda(), c.getZonaHoraria(),
+                c.isMostrarDatosFiscalesTicket(), c.isSetupCompletado(), c.isMostrarIvaTicket());
     }
 
     private void validarColor(String color, String nombre) {

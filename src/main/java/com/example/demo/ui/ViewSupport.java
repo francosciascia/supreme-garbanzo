@@ -14,12 +14,19 @@ final class ViewSupport {
 
     static HorizontalLayout header(String title, Component... actions) {
         HorizontalLayout header = new HorizontalLayout();
+        header.addClassName("view-header");
         header.setWidthFull();
         header.setAlignItems(HorizontalLayout.Alignment.CENTER);
         H2 heading = new H2(title);
+        heading.addClassName("view-title");
         header.add(heading);
         header.expand(heading);
-        header.add(actions);
+        if (actions.length > 0) {
+            HorizontalLayout actionsRow = new HorizontalLayout(actions);
+            actionsRow.addClassName("view-actions");
+            actionsRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
+            header.add(actionsRow);
+        }
         return header;
     }
 

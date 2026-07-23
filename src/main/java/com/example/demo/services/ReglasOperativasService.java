@@ -31,10 +31,16 @@ public class ReglasOperativasService {
             throw new IllegalArgumentException("Descuento máximo inválido");
         if (d.limiteCreditoPredeterminado() == null || d.limiteCreditoPredeterminado().signum() < 0)
             throw new IllegalArgumentException("Límite de crédito inválido");
+        if (d.margenMinimoPct() == null || d.margenMinimoPct().signum() < 0
+                || d.margenMinimoPct().compareTo(BigDecimal.valueOf(100)) > 0)
+            throw new IllegalArgumentException("Margen mínimo inválido");
         if (d.diasAlertaVencimiento() < 0) throw new IllegalArgumentException("Días de alerta inválidos");
         if (d.diasMaximosDevolucion() < 0) throw new IllegalArgumentException("Plazo de devolución inválido");
-        try { Venta.MedioPago.valueOf(d.medioPagoPredeterminado()); }
-        catch (RuntimeException exception) { throw new IllegalArgumentException("Medio de pago predeterminado inválido"); }
+        try {
+            Venta.MedioPago.valueOf(d.medioPagoPredeterminado());
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("Medio de pago predeterminado inválido");
+        }
 
         ReglasOperativas r = entity();
         r.setCajaObligatoria(d.cajaObligatoria());
@@ -51,6 +57,10 @@ public class ReglasOperativasService {
         r.setControlarVencimientos(d.controlarVencimientos());
         r.setBloquearVentaVencidos(d.bloquearVentaVencidos());
         r.setDiasAlertaVencimiento(d.diasAlertaVencimiento());
+        r.setRedondeoEfectivo(d.redondeoEfectivo());
+        r.setMotivoAnulacionObligatorio(d.motivoAnulacionObligatorio());
+        r.setMargenMinimoPct(d.margenMinimoPct());
+        r.setImprimirTicketAuto(d.imprimirTicketAuto());
         repository.save(r);
         auditoria.registrar(usuarioId, "MODIFICAR", "REGLAS_OPERATIVAS", 1, "Reglas comerciales actualizadas");
         return dto(r);
@@ -61,7 +71,8 @@ public class ReglasOperativasService {
                 .descuentoMaximo(BigDecimal.valueOf(20)).medioPagoPredeterminado("EFECTIVO")
                 .limiteCreditoPredeterminado(BigDecimal.ZERO).anulacionSoloDueno(true)
                 .devolucionesHabilitadas(true).diasMaximosDevolucion(30).controlarVencimientos(true)
-                .bloquearVentaVencidos(true).diasAlertaVencimiento(30).build());
+                .bloquearVentaVencidos(true).diasAlertaVencimiento(30).redondeoEfectivo(false)
+                .motivoAnulacionObligatorio(false).margenMinimoPct(BigDecimal.ZERO).imprimirTicketAuto(true).build());
     }
 
     private ReglasOperativasDTO dto(ReglasOperativas r) {
@@ -69,6 +80,9 @@ public class ReglasOperativasService {
                 r.isPermitirVentaSinStock(), r.getDescuentoMaximo(), r.isPermitirPrecioManual(),
                 r.getMedioPagoPredeterminado(), r.isFiadoHabilitado(), r.getLimiteCreditoPredeterminado(),
                 r.isAnulacionSoloDueno(), r.isDevolucionesHabilitadas(), r.getDiasMaximosDevolucion(),
-                r.isControlarVencimientos(), r.isBloquearVentaVencidos(), r.getDiasAlertaVencimiento());
+                r.isControlarVencimientos(), r.isBloquearVentaVencidos(), r.getDiasAlertaVencimiento(),
+                r.isRedondeoEfectivo(), r.isMotivoAnulacionObligatorio(),
+                r.getMargenMinimoPct() == null ? BigDecimal.ZERO : r.getMargenMinimoPct(),
+                r.isImprimirTicketAuto());
     }
 }

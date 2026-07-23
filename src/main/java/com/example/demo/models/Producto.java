@@ -63,6 +63,10 @@ public class Producto {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal precioVenta;
 
+    @Column(name = "alicuota_iva", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal alicuotaIva = new BigDecimal("21");
+
     @Column(name = "cantidad_minima_promo")
     private Integer cantidadMinimaPromo;
 

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CajaServiceTest {
     @Mock CajaRepository cajas; @Mock MovimientoCajaRepository movimientos; @Mock PersonaRepository personas;
+    @Mock AuditoriaService auditoria;
     @InjectMocks CajaService service;
 
     @Test void abreUnaCajaParaElUsuario() {
@@ -33,7 +34,10 @@ class CajaServiceTest {
     @Test void cierraCalculandoDiferencia() {
         Persona usuario=Persona.builder().id(1L).nombre("Ana").apellido("Cajera").build();
         Caja caja=Caja.builder().id(2L).usuario(usuario).montoInicial(new BigDecimal("1000")).estado(Caja.Estado.ABIERTA).build();
-        when(cajas.findById(2L)).thenReturn(Optional.of(caja));when(movimientos.saldoMovimientos(2L)).thenReturn(new BigDecimal("500"));when(cajas.save(any())).thenAnswer(i->i.getArgument(0));
+        when(cajas.findById(2L)).thenReturn(Optional.of(caja));
+        when(movimientos.findByCajaIdOrderByFechaDesc(2L)).thenReturn(java.util.List.of());
+        when(movimientos.saldoMovimientos(2L)).thenReturn(new BigDecimal("500"));
+        when(cajas.save(any())).thenAnswer(i->i.getArgument(0));
         var result=service.cerrar(2L,new BigDecimal("1490"));
         assertEquals(new BigDecimal("1500"),result.esperado());assertEquals(new BigDecimal("-10"),result.diferencia());assertEquals("CERRADA",result.estado());
     }

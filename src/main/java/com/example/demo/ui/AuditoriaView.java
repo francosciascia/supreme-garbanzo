@@ -28,13 +28,21 @@ public class AuditoriaView extends VerticalLayout {
         this.service = service;
         addClassName("content-view");
         setSizeFull();
-        entidad.setItems("VENTA", "PRODUCTO", "CAJA", "COMPRA", "DEVOLUCION", "EMPLEADO", "REGLASOPERATIVAS", "CLIENTE");
+        entidad.setItems("VENTA", "PRODUCTO", "CAJA", "COMPRA", "DEVOLUCION", "EMPLEADO",
+                "REGLAS_OPERATIVAS", "REGLASOPERATIVAS", "PRESET_RUBRO", "CLIENTE", "USUARIO");
         entidad.setClearButtonVisible(true);
         accion.setItems("CREAR", "MODIFICAR", "ELIMINAR", "CERRAR");
         accion.setClearButtonVisible(true);
         Button filter = new Button("Filtrar", e -> grid.getDataProvider().refreshAll());
-        grid.addColumn(AuditoriaDTO::fecha).setHeader("Fecha y hora");
-        grid.addColumn(AuditoriaDTO::usuario).setHeader("Usuario");
+        Button clear = new Button("Limpiar", e -> {
+            desde.clear();
+            hasta.clear();
+            entidad.clear();
+            accion.clear();
+            grid.getDataProvider().refreshAll();
+        });
+        grid.addColumn(AuditoriaDTO::fecha).setHeader("Fecha y hora").setAutoWidth(true);
+        grid.addColumn(AuditoriaDTO::usuario).setHeader("Usuario").setAutoWidth(true);
         grid.addColumn(AuditoriaDTO::accion).setHeader("Acción");
         grid.addColumn(AuditoriaDTO::entidad).setHeader("Entidad");
         grid.addColumn(AuditoriaDTO::entidadId).setHeader("ID");
@@ -43,9 +51,9 @@ public class AuditoriaView extends VerticalLayout {
         grid.setItems(DataProvider.fromCallbacks(
                 q -> service.buscar(desde.getValue(), hasta.getValue(), entidad.getValue(), accion.getValue(), null,
                         PageRequest.of(q.getPage(), q.getPageSize(), Sort.by(Sort.Direction.DESC, "fecha"))).stream(),
-                q -> Math.toIntExact(service.buscar(desde.getValue(), hasta.getValue(), entidad.getValue(), accion.getValue(), null,
-                        PageRequest.of(0, 1)).getTotalElements())));
-        add(ViewSupport.header("Auditoría"), new HorizontalLayout(desde, hasta, entidad, accion, filter), grid);
+                q -> (int) Math.min(Integer.MAX_VALUE, service.buscar(desde.getValue(), hasta.getValue(),
+                        entidad.getValue(), accion.getValue(), null, PageRequest.of(0, 1)).getTotalElements())));
+        add(ViewSupport.header("Auditoría"), new HorizontalLayout(desde, hasta, entidad, accion, filter, clear), grid);
         expand(grid);
     }
 }

@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -16,6 +17,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouterLink;
 import com.example.demo.models.PermisoUsuario.Permiso;
+import com.example.demo.services.AlertasService;
 import com.example.demo.services.EmpleadoService;
 import com.example.demo.services.ConfiguracionComercioService;
 import com.example.demo.services.ReglasOperativasService;
@@ -34,21 +36,26 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
     private final NavGroup stockNav;
     private final boolean devolucionesHabilitadas;
     private final boolean controlarVencimientos;
+    private final boolean setupCompletado;
+    private final int alertCount;
 
     public MainLayout(EmpleadoService empleadoService, ConfiguracionComercioService configuracionService,
-                      ReglasOperativasService reglasService) {
+                      ReglasOperativasService reglasService, AlertasService alertasService) {
         var usuarioActual = UserSession.getUser();
         permisos = usuarioActual == null ? Set.of() : empleadoService.permisos(usuarioActual.id());
         var configuracion = configuracionService.obtener();
         var reglas = reglasService.obtener();
         devolucionesHabilitadas = reglas.devolucionesHabilitadas();
         controlarVencimientos = reglas.controlarVencimientos();
+        setupCompletado = configuracion.setupCompletado();
+        alertCount = alertasService.resumen().size();
         UI.getCurrent().getPage().executeJs("document.documentElement.style.setProperty('--lumo-primary-color', $0);"
                         + "document.documentElement.style.setProperty('--lumo-primary-text-color', $0);"
                         + "document.documentElement.style.setProperty('--brand-secondary-color', $1);"
                         + "if(localStorage.getItem('color-mode')==='dark')document.documentElement.setAttribute('theme','dark');",
                 configuracion.colorPrimario(), configuracion.colorSecundario());
         setPrimarySection(Section.DRAWER);
+        pageTitle.addClassName("navbar-title");
         pageTitle.getStyle().set("flex-grow", "1");
         Button theme = new Button(VaadinIcon.ADJUST.create(), event ->
                 UI.getCurrent().getPage().executeJs("const root=document.documentElement;"
@@ -58,15 +65,35 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         theme.getElement().setAttribute("aria-label", "Cambiar entre modo día y noche");
         theme.setTooltipText("Día / noche");
         theme.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        addToNavbar(new DrawerToggle(), pageTitle, theme);
+        Button alertsBtn = new Button(VaadinIcon.BELL.create(), e -> UI.getCurrent().navigate(DashboardView.class));
+        alertsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        alertsBtn.setTooltipText(alertCount == 0 ? "Sin alertas" : alertCount + " alertas");
+        Span alertsWrap = new Span(alertsBtn);
+        alertsWrap.addClassName("nav-alerts");
+        if (alertCount > 0) {
+            Span badge = new Span(String.valueOf(alertCount));
+            badge.addClassName("nav-badge");
+            alertsWrap.add(badge);
+        }
+        addToNavbar(new DrawerToggle(), pageTitle, alertsWrap, theme);
+        VerticalLayout brandBox = new VerticalLayout();
+        brandBox.setPadding(false);
+        brandBox.setSpacing(false);
+        if (configuracion.logoUrl() != null && !configuracion.logoUrl().isBlank()) {
+            Image logo = new Image(configuracion.logoUrl(), configuracion.nombre());
+            logo.addClassName("brand-logo");
+            brandBox.add(logo);
+        }
         H1 brand = new H1(configuracion.nombre());
         brand.addClassName("brand");
+        brandBox.add(brand);
         personasNav = personasGroup();
         stockNav = stockGroup();
         VerticalLayout navigation = new VerticalLayout(
                 link("Productos", VaadinIcon.PACKAGE, ProductosView.class),
                 personasNav,
-                link("Punto de venta", VaadinIcon.CART, VentasView.class));
+                link("Punto de venta", VaadinIcon.CART, VentasView.class),
+                link("POS rápido", VaadinIcon.EXPAND_FULL, PosView.class));
         if (UserSession.isAdmin() || can(Permiso.GESTIONAR_CAJA))
             navigation.add(link("Caja", VaadinIcon.CASH, CajaView.class));
         if (stockNav != null) navigation.add(stockNav);
@@ -89,7 +116,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         logout.setWidthFull();
         VerticalLayout footer = new VerticalLayout(identity, logout);
         footer.addClassName("drawer-footer");
-        VerticalLayout drawer = new VerticalLayout(brand, navigation, footer);
+        VerticalLayout drawer = new VerticalLayout(brandBox, navigation, footer);
         drawer.setSizeFull();
         drawer.expand(navigation);
         addToDrawer(drawer);
@@ -133,6 +160,12 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
     public void beforeEnter(BeforeEnterEvent event) {
         if (!UserSession.isLoggedIn()) {
             event.rerouteTo(LoginView.class);
+            return;
+        }
+        if (!setupCompletado && UserSession.isSuperAdmin()
+                && !event.getNavigationTarget().equals(SetupWizardView.class)
+                && !event.getNavigationTarget().equals(ConfiguracionView.class)) {
+            event.rerouteTo(SetupWizardView.class);
             return;
         }
         String path = event.getLocation().getPath();

@@ -11,6 +11,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Currency;
@@ -61,6 +63,11 @@ public class TicketView extends VerticalLayout implements BeforeEnterObserver {
 
         Div ticket = new Div();
         ticket.addClassName("thermal-ticket");
+        if (config.logoUrl() != null && !config.logoUrl().isBlank()) {
+            Image logo = new Image(config.logoUrl(), config.nombre());
+            logo.addClassName("ticket-logo");
+            ticket.add(logo);
+        }
         ticket.add(new H2(text(config.nombre(), "Comercio")));
         addIfPresent(ticket, config.encabezadoTicket(), "ticket-header");
         if (config.mostrarDatosFiscalesTicket()) {
@@ -83,6 +90,23 @@ public class TicketView extends VerticalLayout implements BeforeEnterObserver {
         ticket.add(items);
         if (sale.descuento().signum() > 0) ticket.add(line("Descuento", "-" + money.format(sale.descuento())));
         ticket.add(separator());
+        if (config.mostrarIvaTicket()) {
+            BigDecimal neto = BigDecimal.ZERO;
+            BigDecimal iva = BigDecimal.ZERO;
+            for (ItemVentaDTO item : sale.items()) {
+                BigDecimal rate = item.alicuotaIva() == null ? new BigDecimal("21") : item.alicuotaIva();
+                BigDecimal divisor = BigDecimal.valueOf(100).add(rate);
+                BigDecimal itemNeto = item.subtotal().multiply(BigDecimal.valueOf(100)).divide(divisor, 2, RoundingMode.HALF_UP);
+                neto = neto.add(itemNeto);
+                iva = iva.add(item.subtotal().subtract(itemNeto));
+            }
+            if (sale.descuento().signum() > 0) {
+                BigDecimal factor = sale.total().divide(sale.total().add(sale.descuento()), 8, RoundingMode.HALF_UP);
+                neto = neto.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+                iva = sale.total().subtract(neto);
+            }
+            ticket.add(line("Neto", money.format(neto)), line("IVA", money.format(iva)));
+        }
         Div total = line("TOTAL", money.format(sale.total()));
         total.addClassName("ticket-total");
         ticket.add(total, line("Pago", sale.medioPago().replace('_', ' ')));

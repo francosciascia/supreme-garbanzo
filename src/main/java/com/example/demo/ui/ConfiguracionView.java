@@ -63,8 +63,9 @@ public class ConfiguracionView extends VerticalLayout {
         ComboBox<String> currency = new ComboBox<>("Moneda"); currency.setItems("ARS", "USD", "UYU", "BRL", "PYG", "CLP"); currency.setValue(current.moneda());
         TextField zone = field("Zona horaria", "Ej.: America/Argentina/Buenos_Aires", current.zonaHoraria());
         Checkbox showFiscal = new Checkbox("Mostrar datos fiscales en el ticket", current.mostrarDatosFiscalesTicket());
+        Checkbox showIva = new Checkbox("Desglosar IVA en el ticket (precios con IVA incluido)", current.mostrarIvaTicket());
         Details tickets = section("Comprobantes y formato regional", "Define qué información recibe el cliente al imprimir.",
-                new VerticalLayout(form(ticketHeader, ticketFooter, width, currency, zone), showFiscal));
+                new VerticalLayout(form(ticketHeader, ticketFooter, width, currency, zone), showFiscal, showIva));
 
         Div preview = new Div(new H2(current.nombre()), new Paragraph(value(current.slogan())));
         preview.addClassName("brand-preview");
@@ -81,7 +82,8 @@ public class ConfiguracionView extends VerticalLayout {
                         slogan.getValue(), legalName.getValue(), cuit.getValue(), taxCondition.getValue(), address.getValue(),
                         phone.getValue(), email.getValue(), whatsapp.getValue(), website.getValue(), logoUrl.getValue(),
                         primaryColor.getValue(), secondaryColor.getValue(), ticketHeader.getValue(), ticketFooter.getValue(),
-                        width.getValue(), currency.getValue(), zone.getValue(), showFiscal.getValue()));
+                        width.getValue(), currency.getValue(), zone.getValue(), showFiscal.getValue(),
+                        current.setupCompletado(), showIva.getValue()));
                 applyTheme(saved);
                 ViewSupport.success("Personalización guardada");
             } catch (RuntimeException exception) {
@@ -91,8 +93,11 @@ public class ConfiguracionView extends VerticalLayout {
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Button reglas = new Button("Reglas del negocio", VaadinIcon.SLIDERS.create(),
                 event -> getUI().ifPresent(ui -> ui.navigate(ReglasOperativasView.class)));
-        HorizontalLayout actions = new HorizontalLayout(save, reglas);
-        add(ViewSupport.header("Configuración del comercio"), new Paragraph("Estos datos cambian la identidad del producto para cada cliente sin alterar la lógica central."),
+        Button setup = new Button("Asistente inicial", VaadinIcon.MAGIC.create(),
+                event -> getUI().ifPresent(ui -> ui.navigate(SetupWizardView.class)));
+        HorizontalLayout actions = new HorizontalLayout(save, reglas, setup);
+        add(ViewSupport.header("Configuración del comercio"),
+                new Paragraph("Estos datos cambian la identidad del producto para cada cliente sin alterar la lógica central."),
                 preview, identity, fiscal, contact, tickets, actions);
     }
 

@@ -4,14 +4,17 @@ import com.example.demo.dto.AuditoriaDTO;
 import com.example.demo.models.Auditoria;
 import com.example.demo.repository.AuditoriaRepository;
 import com.example.demo.repository.PersonaRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -49,9 +52,28 @@ public class AuditoriaService {
     @Transactional(readOnly = true)
     public Page<AuditoriaDTO> buscar(LocalDate desde, LocalDate hasta, String entidad, String accion,
                                      Long usuarioId, Pageable pageable) {
-        LocalDateTime from = desde == null ? null : desde.atStartOfDay();
-        LocalDateTime to = hasta == null ? null : hasta.plusDays(1).atStartOfDay();
-        return repository.buscar(from, to, blankToNull(entidad), blankToNull(accion), usuarioId, pageable).map(this::dto);
+        Specification<Auditoria> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (desde != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("fecha"), desde.atStartOfDay()));
+            }
+            if (hasta != null) {
+                predicates.add(cb.lessThan(root.get("fecha"), hasta.plusDays(1).atStartOfDay()));
+            }
+            String entidadFiltro = blankToNull(entidad);
+            if (entidadFiltro != null) {
+                predicates.add(cb.equal(cb.upper(root.get("entidad")), entidadFiltro.toUpperCase()));
+            }
+            String accionFiltro = blankToNull(accion);
+            if (accionFiltro != null) {
+                predicates.add(cb.equal(cb.upper(root.get("accion")), accionFiltro.toUpperCase()));
+            }
+            if (usuarioId != null) {
+                predicates.add(cb.equal(root.get("usuario").get("id"), usuarioId));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+        return repository.findAll(spec, pageable).map(this::dto);
     }
 
     @Transactional(readOnly = true)

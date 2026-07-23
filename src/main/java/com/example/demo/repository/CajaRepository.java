@@ -6,4 +6,5 @@ import java.util.Optional;
 public interface CajaRepository extends JpaRepository<Caja, Long> {
     Optional<Caja> findFirstByUsuarioIdAndEstadoOrderByFechaAperturaDesc(Long usuarioId, Caja.Estado estado);
     List<Caja> findByEstado(Caja.Estado estado);
+    List<Caja> findByEstadoOrderByFechaCierreDesc(Caja.Estado estado);
 }

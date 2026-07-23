@@ -64,6 +64,13 @@ public class Venta {
     @Column(name = "numero_comprobante", unique = true, length = 40)
     private String numeroComprobante;
 
+    @Column(name = "motivo_anulacion", length = 500)
+    private String motivoAnulacion;
+
+    /** Si se setea, @PrePersist/@PreUpdate respeta este total (p.ej. redondeo efectivo). */
+    @Transient
+    private BigDecimal totalForzado;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "caja_id")
     private Caja caja;
@@ -86,6 +93,7 @@ public class Venta {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (descuento == null) descuento = BigDecimal.ZERO;
         total = bruto.subtract(descuento).max(BigDecimal.ZERO);
+        if (totalForzado != null) total = totalForzado;
     }
 
     public void addItems(ItemVenta itemVenta){

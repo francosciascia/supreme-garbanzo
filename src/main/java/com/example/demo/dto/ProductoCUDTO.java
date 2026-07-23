@@ -36,11 +36,21 @@ public record ProductoCUDTO(
         String unidadVenta,
         LocalDate fechaVencimiento,
         @Min(2) Integer cantidadMinimaPromo,
-        @DecimalMin("0.01") BigDecimal precioPromocional
+        @DecimalMin("0.01") BigDecimal precioPromocional,
+        @DecimalMin("0") @DecimalMax("100") BigDecimal alicuotaIva
 ) {
     public ProductoCUDTO(String nombre, String descripcion, Integer stock, Boolean vencimiento,
                          BigDecimal costo, BigDecimal precioVenta, Long categoriaId) {
         this(nombre, descripcion, stock, vencimiento, costo, precioVenta, categoriaId,
-                null, null, 5, "UNIDAD", null, null, null);
+                null, null, 5, "UNIDAD", null, null, null, new BigDecimal("21"));
+    }
+
+    public ProductoCUDTO(String nombre, String descripcion, Integer stock, Boolean vencimiento,
+                         BigDecimal costo, BigDecimal precioVenta, Long categoriaId, String codigoBarras,
+                         String marca, Integer stockMinimo, String unidadVenta, LocalDate fechaVencimiento,
+                         Integer cantidadMinimaPromo, BigDecimal precioPromocional) {
+        this(nombre, descripcion, stock, vencimiento, costo, precioVenta, categoriaId, codigoBarras, marca,
+                stockMinimo, unidadVenta, fechaVencimiento, cantidadMinimaPromo, precioPromocional,
+                new BigDecimal("21"));
     }
 }
